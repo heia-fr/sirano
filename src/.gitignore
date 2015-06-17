@@ -1,0 +1,6 @@
+﻿# Ignore Python compiled files
+*.pyc
+# Ignore projects folder except default project
+/projects/*
+!/projects/default/
+

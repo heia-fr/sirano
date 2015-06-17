@@ -1,0 +1,47 @@
+Libraries We Use
+================
+
+The following libraries are used but they are not distributed 
+with this sofware :
+
+argparse
+--------
+Licensed under the Python Software Foundation License.
+https://docs.python.org/2/license.html
+
+enum
+----
+Licensed under the Python Software Foundation License.
+https://docs.python.org/2/license.html
+
+netaddr
+-------
+Licensed under the BSD license.
+http://opensource.org/licenses/BSD-3-Clause
+
+python-magic
+------------
+Licensed under the Python Software Foundation License.
+https://docs.python.org/2/license.html
+
+PyYAML
+------
+Licensed under the MIT License.
+http://opensource.org/licenses/MIT
+
+ipaddress
+---------
+Licensed under the Python Software Foundation License.
+https://docs.python.org/2/license.html
+
+scapy
+-----
+Licensed under the GNU General Public License, version 2.
+https://www.gnu.org/licenses/gpl-2.0.html
+
+The Python Standard Library
+---------------------------
+Licensed under the Python Software Foundation License.
+https://docs.python.org/2/license.html
+
+

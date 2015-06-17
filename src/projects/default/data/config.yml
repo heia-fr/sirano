@@ -1,0 +1,104 @@
+layer:
+  bind-layers:
+    - lower: UDP
+      upper: RTP
+
+file:
+  pcap:
+    priority: 0
+    actions:
+
+      Raw: drop
+
+      Padding: pass
+
+      SDP:
+        fields:
+          v: pass
+          a: pass
+          b: pass
+          m: pass
+          s: pass
+          t: pass
+          p: pass
+          c: sdp-connection
+          o: sdp-connection
+          e: email
+
+      SIPHeader:
+        fields:
+          To: sip-identity
+          From: sip-identity
+          P-Asserted-Identity: sip-identity
+          P-Preferred-Identity: sip-identity
+          Contact: sip-identity
+          Diversion: sip-identity
+          Call-ID: sip-call-id
+          P-Charging-Vector: sip-p-charging-vector
+          Via: sip-via
+          Accept: pass
+          Content-Length: pass
+          User-Agent: pass
+          CSeq: pass
+          Max-Forwards: pass
+          Allow-Events: pass
+          Allow: pass
+          Supported: pass
+          Date: pass
+          Content-Type: pass
+          Require: pass
+          Session-Expires: pass
+          Min-SE: pass
+          Expires: pass
+          RSeq: pass
+          RAck: pass
+          Cisco-Guid: pass
+          Reason: pass
+          Server: pass
+          x-nt-service: pass
+          x-nt-location: pass
+          x-nt-corr-id: pass
+          X-Siemens-Call-Type: pass
+
+      SIPResponse: pass
+
+      SIPRequest:
+        fields:
+          Request-URI: sip-identity
+        other-fields: pass
+
+      SIP: pass
+
+      RTP: drop
+
+      IPv6: drop
+
+      IP:
+        fields:
+          src: ip-address
+          dst: ip-address
+          chksum: reset
+          len: reset
+        other-fields: pass
+
+      UDP:
+        fields:
+          len: reset
+          chksum: reset
+        other-fields: pass
+
+      TCP:
+        fields:
+          len: reset
+          chksum: reset
+        other-fields: pass
+
+      Dot1Q: pass
+
+      ARP: drop
+
+      Ether:
+        fields:
+          src: mac-address
+          dst: mac-address
+        other-fields: pass
