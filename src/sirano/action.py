@@ -93,7 +93,10 @@ class Action:
 
     def __init__(self, app):
         self.app = app
-        """The instance of the application"""
+        """
+        The instance of the application
+        :type : App
+        """
 
     def discover(self, value):
         """

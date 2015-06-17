@@ -48,7 +48,6 @@ class _FiletypeMetaclass(type):
         else:
             FileManager.file_classes = dict()
 
-
 class FileManager(Manager):
     """
     Manager for each file format"
@@ -57,25 +56,31 @@ class FileManager(Manager):
     name = 'file'
 
     file_classes = None
-    """Contain the File plugin name with its class"""
+    """
+    Contain the File plugin name with its class
+    :type : list[__FiletypeMetaclass]
+    """
 
     def __init__(self, app):
         Manager.__init__(self, app)
 
         self.files = list()
+        """
+        File object to anonymize
+        :type : list[File]
+        """
+
+        self.priority = dict()
+        """
+        The priority of the File for the processing order
+        :type dict[str, File]
+        """
 
     def configure(self):
-
-        self.__load_config()
-        self.app.log.debug("manager:files: Configured")
-
-    def __load_config(self):
-        """Load the configuration to its internal representation"""
-
         if isinstance(self.conf, dict):
             for name, data in self.conf.iteritems():
                 if 'priority' in data:
-                    self.__add_file(name, data['priority'])
+                    self.__import_file(name, data['priority'])
                 else:
                     # TODO Config exception
                     Exception("Key priority not found")
@@ -83,7 +88,9 @@ class FileManager(Manager):
             # TODO Config exception
             Exception("Filetype format invalid")
 
-    def __add_file(self, name, priority):
+        self.app.log.debug("manager:files: Configured")
+
+    def __import_file(self, name, priority):
         """
         Add a File plugin with its priority
 
@@ -92,81 +99,114 @@ class FileManager(Manager):
         :param priority: The priority of the File plugin (0 tis the highest priority)
         :type priority: int
         """
-
         try:
             f_cls = self.file_classes[name]
         except KeyError:
             __import__('sirano.plugins.files.' + name)
             f_cls = self.file_classes[name]
 
-        f = f_cls(self.app)
+        f_cls.priority = priority
 
-        f_tuple = (priority, f)
-        heappush(self.files, f_tuple)
-
-    def __find_file(self, filename):
+    def __get_file_cls(self, path):
         """Find a File plugin for a specified file
 
         :param filename: The path of the file
         :type filename: str
         """
+        for f_cls in self.file_classes.itervalues():
+            if f_cls.is_compatible(path):
+                return f_cls
 
-        for _, f in self.files:
-            if f.is_compatible(filename):
-                return f
-
-        self.app.log.critical("manager:file: File type not detected for \"%s\"", filename)
+        self.app.log.critical("manager:file: File type not detected for \"%s\"", path)
+        return None
 
     def add_files(self):
         """Adds all files that are in the input file"""
 
-        for f in os.listdir(self.app.project.input):
+        for root, dirs, files in os.walk(self.app.project.input):
+            for name in files:
 
-            if f.startswith("."):
-                continue
+                if name.startswith('.'):
+                    continue
 
-            ft = self.__find_file(f)
+                path = os.path.join(root, name)
 
-            ft.add_file(f)
+                # Relative path of the file from the input directory
+                r_path = os.path.relpath(path, self.app.project.input)
+
+                f_cls = self.__get_file_cls(path)
+
+                if f_cls is not None:
+                    f = f_cls(self.app, r_path)
+                    self.files.append(f)
+
+        self.files.sort(key=lambda f: f.priority)
 
     def anonymize_all(self):
         """Launch the anonymize method for all files"""
-
-        for _, ft in self.files:
-            ft.anonymize()
+        for f in self.files:
+            f.anonymize()
 
     def discover_all(self):
         """Launch the discover method for all files"""
-        for _, ft in self.files:
-            ft.discover()
+        for f in self.files:
+            f.discover()
 
     def validate_all(self):
         """Launch the validate method for all files"""
-        for _, ft in self.files:
-            ft.validate()
+        for f in self.files:
+            f.validate()
 
 
 class File:
     """Superclass for all actions"""
 
     name = None
-    """The name of the action, this class attribute must be declared in subclasses"""
+    """
+    The name of the action, this class attribute must be declared in subclasses
+    :type : str
+    """
+
+    priority = None
+    """
+    The priority is the order for the file processing
+    :type : int
+    """
 
     __metaclass__ = _FiletypeMetaclass
 
-    def __init__(self, app):
-        self.files = list()
+    def __init__(self, app, file):
+        """
+        Constructor
+        :param app: The apélication instance
+        :rtype App
+        :param file: The relative path of the file from the in directory
+        :type file: str
+        """
         self.app = app
-        """The instance of the application"""
+        """
+        The instance of the application
+        :type : App
+        """
 
-        self.conf = app.conf.get('file', dict()).get(self.name, dict())
-        """The file configuration given by the YAML configuration file"""
+        self.file = file
+        """
+        The relative path of the file from the in directory
+        :type : str
+        """
 
-    def is_compatible(self, filename):
+        self.conf = app.conf.get('file', dict).get(self.name, dict())
+        """
+        The file configuration given by the YAML configuration file
+        :type : dict[str, dict]
+        """
+
+    @classmethod
+    def is_compatible(cls, filename):
         """
         Check if a file is compatible with the File class
 
-        This method must be overridden.
+        This class method must be overridden.
 
         :param filename: The file name of the file to test
         :type filename: str
@@ -174,15 +214,6 @@ class File:
         :return True when the file is compatible, False otherwise
         """
         raise NotImplementedError
-
-    def add_file(self, filename):
-        """
-        Add a file to the list
-
-        :param filename: The path of the file to add
-        :type filename: str
-        """
-        self.files.append(filename)
 
     def anonymize(self):
         """

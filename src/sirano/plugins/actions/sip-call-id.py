@@ -22,6 +22,7 @@
 import re
 
 from sirano.action import Action
+from sirano.exception import FormatException
 
 
 class SIPCallIDAction(Action):
@@ -40,8 +41,7 @@ class SIPCallIDAction(Action):
         call_id = self.call_id.match(value)
 
         if call_id is None:
-            self.app.log.error("action:sip-call-id: Unknown format for '{}'".format(value))
-            return
+            raise FormatException(self, value)
 
         host = call_id.group('host')
 
@@ -53,8 +53,7 @@ class SIPCallIDAction(Action):
         call_id = self.call_id.match(value)
 
         if call_id is None:
-            self.app.log.error("action:sip-call-id: Unknown format for '{}'".format(value))
-            return ''
+            raise FormatException(self, value)
 
         host = call_id.group('host')
 

@@ -31,9 +31,12 @@ class MacAddressAction(Action):
         super(MacAddressAction, self).__init__(app)
 
         self.mac = self.app.manager.data.get_data('mac')
+        """:type : MacData"""
+
 
     def discover(self, value):
         self.mac.add_value(value)
+
 
     def anonymize(self, value):
         return self.mac.get_replacement(value)

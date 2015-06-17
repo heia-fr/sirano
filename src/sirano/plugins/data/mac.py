@@ -32,18 +32,20 @@ class MacData(Data):
 
     name = 'mac'
 
-    re_mac = re.compile(r"^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$")
+    re_mac = re.compile(r"^([0-9a-fA-F]{2}[:\.-]?){5}[0-9a-fA-F]{2}$")
     """The regular expression for a mac address"""
 
     def __init__(self, app):
         super(MacData, self).__init__(app)
+        self.macs = None
+        """:type : dict"""
 
-        self.macs = dict()
+    def post_load(self):
+        super(MacData, self).post_load()
 
-    def load(self):
-        super(MacData, self).load()
+        self.macs = self.link_data('macs', dict)
 
-        self.macs = self.data['macs']
+
 
         for k, v in self.macs.iteritems():
 
@@ -63,6 +65,8 @@ class MacData(Data):
             del self.macs[old_k]
             self.macs[k] = v
 
+
+
     @staticmethod
     def __oui(eui):
         oui = eui.value >> 24
@@ -78,6 +82,8 @@ class MacData(Data):
             if v is None:
                 self.macs[k] = None
 
+                print k
+                print k
                 n = netaddr.EUI(k)
                 oui = self.__oui(n)
 
@@ -109,7 +115,8 @@ class MacData(Data):
         if not isinstance(value, str):
             return False
 
-        return self.re_mac.match(value) is not None
+        valid =  self.re_mac.match(value) is not None
+        return valid
 
     class MacAddress(object):
 

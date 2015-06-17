@@ -86,6 +86,7 @@ class Sirano:
         """
         Pass through all phases
         """
+        self.app.log.info("Pass throught start")
         self.app.phase = Phase.phase_1
         self.app.manager.file.add_files()
         self.app.manager.file.discover_all()

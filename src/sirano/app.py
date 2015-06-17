@@ -29,6 +29,8 @@ from sirano.action import ActionManager
 from sirano.data import DataManager
 from sirano.file import FileManager
 from sirano.layer import LayerManager
+from sirano.packet import PacketAnonymizer
+from sirano.utils import makedirs, AppBase
 
 
 class Phase(Enum):
@@ -38,15 +40,13 @@ class Phase(Enum):
     phase_4 = 4
     """Validation phase"""
 
-
-class AppManager(object):
+class AppManager(AppBase):
     def __init__(self, app):
         """
         Object that contain all manager instance
-
-        :param app:
-        :return:
         """
+        super(AppManager, self).__init__(app)
+
         self.action = ActionManager(app)
         """The manager for Action plugins"""
 
@@ -75,6 +75,7 @@ class ProjectPath(object):
 
         :param project_id: The reference id of the project
         """
+
         project = 'projects/' + project_id
 
         self.project = project
@@ -104,6 +105,19 @@ class ProjectPath(object):
         self.logs = project + '/logs'
         """The path for the log files"""
 
+        self.__create_dirs()
+
+
+    def __create_dirs(self):
+        """Create all dirs if not exist"""
+        makedirs(self.project)
+        makedirs(self.data)
+        makedirs(self.input)
+        makedirs(self.logs)
+        makedirs(self.output)
+        makedirs(self.report)
+        makedirs(self.trash)
+        makedirs(self.validation)
 
 class App(object):
     def __init__(self, project_id):
@@ -138,6 +152,12 @@ class App(object):
 
         self.manager.configure_all()
 
+        self.packet = PacketAnonymizer(self)
+        """
+        The packet anonymizer
+        :type : PacketAnonymizer
+        """
+
     def __get_log(self):
 
         log = logging.getLogger("sirano")
@@ -147,7 +167,7 @@ class App(object):
 
         # Console handler
         handler_console = logging.StreamHandler()
-        handler_console.setLevel(logging.DEBUG)
+        handler_console.setLevel(logging.WARNING)
         handler_console.setFormatter(fmt)
 
         # All file handler

@@ -4,3 +4,8 @@
 /projects/*
 !/projects/default/
 
+# Ignore Vagrant Project
+/.vagrant
+
+# Ignore PyCharm Project
+/.idea

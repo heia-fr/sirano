@@ -24,6 +24,7 @@ import re
 import string
 
 from sirano.data import Data
+from tld import get_tld
 
 
 class DomainData(Data):
@@ -38,7 +39,8 @@ class DomainData(Data):
 
     def __init__(self, app):
         super(DomainData, self).__init__(app)
-        self.domains = dict()
+        self.domains = None
+        self.tlds = self.conf.get('tlds', list)
 
     def get_replacement(self, value):
 
@@ -50,10 +52,8 @@ class DomainData(Data):
 
         return r
 
-    def load(self):
-        super(DomainData, self).load()
-
-        self.domains = self.data['domains']
+    def post_load(self):
+        self.domains = self.link_data('domains', dict)
 
     def process(self):
 
@@ -71,6 +71,20 @@ class DomainData(Data):
         for k in self.domains.iterkeys():
             self.domains[k] = ''
 
+    def __tld_exist(self, domain):
+        """
+        Check if domain has an existent TLD in local list
+        :param domain: the domain to check
+        :type domain: str
+        :return: True if exist, else False
+        :rtype bool
+        """
+        for tld in self.tlds:
+            if domain.endswith('.' + tld):
+                return True
+
+        return False
+
     def is_valid(self, value):
 
         if not isinstance(value, str):
@@ -78,6 +92,10 @@ class DomainData(Data):
 
         # Check if it is not an IP address to avoid confusion
         if self.app.manager.data.get_data('ip').is_valid(value):
+            return False
+
+        # Check if the value ends with a TLD
+        if (get_tld('http://' + value, fail_silently=True) is None) and (self.__tld_exist(value) is False):
             return False
 
         return self.re_domain.match(value) is not None

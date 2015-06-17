@@ -6,99 +6,154 @@ layer:
 file:
   pcap:
     priority: 0
-    actions:
+  text:
+    priority: 1
 
-      Raw: drop
+packet:
+  layers:
 
-      Padding: pass
+    Raw: drop
 
-      SDP:
-        fields:
-          v: pass
-          a: pass
-          b: pass
-          m: pass
-          s: pass
-          t: pass
-          p: pass
-          c: sdp-connection
-          o: sdp-connection
-          e: email
+    Padding: pass
 
-      SIPHeader:
-        fields:
-          To: sip-identity
-          From: sip-identity
-          P-Asserted-Identity: sip-identity
-          P-Preferred-Identity: sip-identity
-          Contact: sip-identity
-          Diversion: sip-identity
-          Call-ID: sip-call-id
-          P-Charging-Vector: sip-p-charging-vector
-          Via: sip-via
-          Accept: pass
-          Content-Length: pass
-          User-Agent: pass
-          CSeq: pass
-          Max-Forwards: pass
-          Allow-Events: pass
-          Allow: pass
-          Supported: pass
-          Date: pass
-          Content-Type: pass
-          Require: pass
-          Session-Expires: pass
-          Min-SE: pass
-          Expires: pass
-          RSeq: pass
-          RAck: pass
-          Cisco-Guid: pass
-          Reason: pass
-          Server: pass
-          x-nt-service: pass
-          x-nt-location: pass
-          x-nt-corr-id: pass
-          X-Siemens-Call-Type: pass
+    SDP:
+      fields:
+        v: pass
+        a: pass
+        b: pass
+        m: pass
+        s: pass
+        t: pass
+        p: pass
+        c: sdp-connection
+        o: sdp-origin
+        e: email
 
-      SIPResponse: pass
+    SIPHeader:
+      fields:
+        To: sip-identity
+        From: sip-identity
+        P-Asserted-Identity: sip-identity
+        P-Preferred-Identity: sip-identity
+        Contact: sip-identity
+        Diversion: sip-identity
+        Call-ID: sip-call-id
+        P-Charging-Vector: sip-p-charging-vector
+        Via: sip-via
+        Accept: pass
+        Content-Length: pass
+        User-Agent: pass
+        CSeq: pass
+        Max-Forwards: pass
+        Allow-Events: pass
+        Allow: pass
+        Supported: pass
+        Date: pass
+        Content-Type: pass
+        Require: pass
+        Session-Expires: pass
+        Min-SE: pass
+        Expires: pass
+        RSeq: pass
+        RAck: pass
+        Cisco-Guid: pass
+        Reason: pass
+        Server: pass
+        x-nt-service: pass
+        x-nt-location: pass
+        x-nt-corr-id: pass
+        X-Siemens-Call-Type: pass
 
-      SIPRequest:
-        fields:
-          Request-URI: sip-identity
-        other-fields: pass
+    SIPResponse: pass
 
-      SIP: pass
+    SIPRequest:
+      fields:
+        Request-URI: sip-identity
+      other-fields: pass
 
-      RTP: drop
+    SIP: pass
 
-      IPv6: drop
+    RTP: drop
 
-      IP:
-        fields:
-          src: ip-address
-          dst: ip-address
-          chksum: reset
-          len: reset
-        other-fields: pass
+    IPv6: drop
 
-      UDP:
-        fields:
-          len: reset
-          chksum: reset
-        other-fields: pass
+    IP:
+      fields:
+        src: ip-address
+        dst: ip-address
+        chksum: reset
+        len: reset
+      other-fields: pass
 
-      TCP:
-        fields:
-          len: reset
-          chksum: reset
-        other-fields: pass
+    UDP:
+      fields:
+        len: reset
+        chksum: reset
+      other-fields: pass
 
-      Dot1Q: pass
+    TCP:
+      fields:
+        len: reset
+        chksum: reset
+      other-fields: pass
 
-      ARP: drop
+    Dot1Q: pass
 
-      Ether:
-        fields:
-          src: mac-address
-          dst: mac-address
-        other-fields: pass
+    ARP:
+      fields:
+        hwsrc: mac-address
+        hwdst: mac-address
+        psrc: ip-address
+        pdst: ip-address
+      other-fields: pass
+
+    Ether:
+      fields:
+        src: mac-address
+        dst: mac-address
+      other-fields: pass
+
+  text:
+    priority: 1
+
+data:
+  ip:
+    blocks:
+      - 0.0.0.0/1          # Class A network RFC 791
+      - 0.0.0.0/8          # Current network RFC 6890
+      - 0.0.0.0/24         # Do not anonymize 0.0.0.0
+      - 10.0.0.0/8         # Private network RFC 1918
+      - 100.64.0.0/10      # Shared Address Space RFC 6598
+      - 127.0.0.0/8        # Loopback RFC 6890
+      - 128.0.0.0/2        # Class B network RFC 791
+      - 169.254.0.0/16     # Link-local RFC 3927
+      - 172.16.0.0/12      # Private network RFC 1918
+      - 192.0.0.0/24       # IETF Protocol Assignments RFC 6890
+      - 192.0.0.0/3        # Class C network RFC 791
+      - 192.0.2.0/24       # TEST-NET-1, Network benchmark tests RFC 5737
+      - 192.168.0.0/16     # Private network RFC 1918
+      - 192.88.99.0/24     # IPv6 to IPv4 relay RFC 3068
+      - 198.18.0.0/16      # Network benchmark tests RFC 2544
+      - 198.51.100.0/24    # TEST-NET-2, documentation and examples RFC 5737
+      - 203.0.113.0/24     # TEST-NET-3, documentation and examples RFC 5737
+      - 224.0.0.0/4        # IP multicast (former Class D network) RFC 5771
+      - 240.0.0.0/4        # Reserved (former Class E network) RFC 1700
+      - 255.255.255.255/8  # Broadcast RFC 919
+
+  domain:
+    # Additional Top Level Domains
+    tlds:
+      - test      # TLD for testing RFC 2606
+      - exemple   # TLD for testing RFC 2606
+      - invalid   # TLD for testing RFC 2606
+      - localhost # TLD for testing RFC 2606
+      - invalid   # TLD for testing RFC 2606
+      - lan       # TLD for private LAN RFC 6762
+      - local     # TLD for private LAN RFC 6762
+      - home      # TLD for private LAN RFC 6762
+      - corp      # TLD for private lAN RFC 6762
+      - intranet  # TLD for private LAN RFC 6762
+      - private   # TLD for private LAN RFC 6762
+      - internal  # TLD for private LAN RFC 6762
+      - localnet  # TLD for private LAN
+

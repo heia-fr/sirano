@@ -37,7 +37,7 @@ class NameData(Data):
 
     def add_value(self, value):
         assert isinstance(value, str)
-
+        value = value.lower()
         if value not in self.names:
             self.names[value] = None
 
@@ -55,20 +55,21 @@ class NameData(Data):
         for k in self.names.iterkeys():
             self.names[k] = ''
 
-    def load(self):
-        super(NameData, self).load()
-
-        self.names = self.data['names']
+    def post_load(self):
+        self.names = self.link_data('names', dict)
 
     def get_replacement(self, value):
-
+        value = value.lower()
         r = self.names.get(value, None)
-
         if r is None:
             self.app.log.error("data:name: Replacement value not found for '%s'", value)
             return ''
 
         return r
+
+    def has_replacement(self, value):
+        value = value.lower()
+        return self.names.has_key(value)
 
     def is_valid(self, value):
         d = self.app.manager.data

@@ -75,6 +75,8 @@ class DataManager(Manager):
 
         :param name: the name of the Data class
         :type name: str
+        :return The data plugin
+        :rtype Data
         """
         return self.data[name]
 
@@ -151,6 +153,7 @@ class DataManager(Manager):
 
         :param value: the value to add
         :type value: str
+        :raise
         """
 
         d = self.guess_data(value)
@@ -171,8 +174,8 @@ class DataManager(Manager):
         d = self.guess_data(value)
         return d.get_replacement(value)
 
-
-class Data():
+#TODO extent AppBase
+class Data(object):
     """
     Superclass for all Data plugins
     """
@@ -191,30 +194,55 @@ class Data():
         self.app = app
         """The application instance"""
 
+        self.app.log.debug('data:{}:__init__()'.format(self.name))
+
         self.path = os.path.join(self.app.project.data, self.name + '.yml')
         """The path of the YAML file that contain the data is stored"""
 
-        self.conf = app.conf.get(self.name, dict)
+        self.conf = app.conf.get('data', dict).get(self.name, dict)
         """The data configuration given by the YAML configuration file"""
 
-        self.data = defaultdict(dict)
+        self.data = None
+        """Data from the YAML file"""
 
     def load(self):
         """Load data from the YAML file"""
+        self.app.log.debug("data:{}:load()".format(self.name))
 
-        if not os.path.isfile(self.path):
-            return
-
-        with file(self.path) as f:  # Read only by default
-            self.data = yaml.load(f)
+        if os.path.isfile(self.path):
+            with file(self.path) as f:  # Read only by default
+                self.data = yaml.load(f)
 
         if self.data is None:
             self.data = defaultdict(dict)
 
         self.app.log.debug("data:{}: Data loaded: File \"{}\"".format(self.name, self.path))
+        self.post_load()
+
+    def post_load(self):
+        """
+        Method called after loading data
+
+        Can be overridden
+        """
+        self.app.log.debug('data:{}:post_load()'.format(self.name))
+        pass
+
+    def pre_save(self):
+        """
+        Method called before saving data
+
+        Can be overridden
+        """
+        self.app.log.debug('data:{}:pre_save()'.format(self.name))
+        pass
 
     def save(self):
         """Save data to the YAML file"""
+
+        self.pre_save()
+
+        self.app.log.debug('data:{}:save()'.format(self.name))
 
         with file(self.path, 'w') as f:
             yaml.dump(dict(self.data), f, default_flow_style=False)
@@ -241,10 +269,12 @@ class Data():
         """
         Add a value to the data
 
-        This method must be overridden.
+        This method must be overloaded.
 
-       :param value: The data to add
-       :type value: str
+        :param value: The data to add
+        :type value: str
+        :param validate: Validate the value by default
+        :raise DataException: The value is not valid
         """
         raise NotImplementedError
 
@@ -256,9 +286,21 @@ class Data():
 
         :param value: The value to replace
         :type value: str
-
         :return The replacement value
         :rtype str
+        """
+        raise NotImplementedError
+
+    def has_replacement(self, value):
+        """
+        Check if a replacement value exist for the given value
+
+        THis method must be overridden
+
+        :param value: The value to check
+        :type value: str
+        :return: True if a replacement value exists, else False
+        :rtype boolean
         """
         raise NotImplementedError
 
@@ -275,3 +317,17 @@ class Data():
         :rtype boolean
         """
         raise NotImplementedError
+
+    def link_data(self, name, default):
+        """
+        Link YAML data to an object
+        :param name: The name of the data
+        :type name: str
+        :param default: The default object if not exist
+        :type default: type
+        :return: The object reference
+        """
+        # Set default value if not exist or None
+        if (not self.data.has_key(name)) or (self.data[name] is None):
+            self.data[name] = default()
+        return self.data[name]

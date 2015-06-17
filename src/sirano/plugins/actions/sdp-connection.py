@@ -22,6 +22,7 @@
 import re
 
 from sirano.action import Action
+from sirano.exception import FormatException
 
 
 class SDPConnectionAction(Action):
@@ -41,13 +42,10 @@ class SDPConnectionAction(Action):
 
     def discover(self, value):
 
-        # l = value.split(';')
-
         m = self.re_sdp_connection.match(value)
 
         if m is None:
-            self.app.log.error("action:sdp-connection: Unknown format for '{}'".format(value))
-            return
+            raise FormatException(self, value)
 
         ip = m.group('ip_address')
 
@@ -58,8 +56,7 @@ class SDPConnectionAction(Action):
         m = self.re_sdp_connection.match(value)
 
         if m is None:
-            self.app.log.error("action:sdp-connection: Unknown format for '{}'".format(value))
-            return ''
+            raise FormatException(self, value)
 
         ip = m.group('ip_address')
 

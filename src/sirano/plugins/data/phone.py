@@ -51,12 +51,10 @@ class PhoneData(Data):
 
         return r
 
-    def load(self):
-        super(PhoneData, self).load()
-
-        self.numbers = self.data['numbers']
-        self.prefix = self.data['prefix']
-        self.codes = self.data['codes']
+    def post_load(self):
+        self.numbers = self.link_data('numbers', dict)
+        self.prefix = self.link_data('prefix', dict)
+        self.codes = self.link_data('codes', dict)
 
     def clear(self):
         for k in self.numbers.iterkeys():

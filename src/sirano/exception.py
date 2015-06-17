@@ -35,25 +35,29 @@ class SiranoException(Exception):
         self.message = message
 
     def __str__(self):
-        return "Sirano: " + self.message
+        return "sirano: " + self.message
 
+class ScapyPacketException(SiranoException):
+    """
+    Exception for the file plugin
+    """
+    def __init__(self, message = ''):
+        super(ScapyPacketException, self).__init__(message)
 
-class DropException(SiranoException):
+class DropException(ScapyPacketException):
     """
     Exception when the entire element must be dropped
     """
-
     def __str__(self):
-        return "Drop: " + self.message
+        return "sirano:file:drop: " + self.message
 
 
 class ImplicitDropException(DropException):
     """
     Exception when the DropException is not explicitly requested by the user
     """
-
     def __str__(self):
-        return "Implicit drop:" + self.message
+        return "sirano:file:drop:implicit: " + self.message
 
 
 class ExplicitDropException(DropException):
@@ -62,7 +66,7 @@ class ExplicitDropException(DropException):
     """
 
     def __str__(self):
-        return "Explicit drop:" + self.message
+        return "sirano:file:drop:explicit: " + self.message
 
 
 class ActionException(SiranoException):
@@ -71,8 +75,19 @@ class ActionException(SiranoException):
     """
 
     def __str__(self):
-        return "Action:" + self.message
+        return "sirano:action: " + self.message
 
+class DataException(SiranoException):
+    """
+    Exception for Data plugins
+    """
+
+    def __init__(self, data, message):
+        super(DataException, self).__init__(message)
+        self.data = data
+
+    def __str__(self):
+        return "sirano:data:{}:".format(self.data.name) + self.message
 
 class FormatException(ActionException):
     """
@@ -83,7 +98,7 @@ class FormatException(ActionException):
         """Initialize the exception for a specified action and value
 
          :param action: The name of the action that generate this exception
-         :type action: str
+         :type action: Action
          :param value: The value concerned by this exception
          :type value: str
         """
@@ -91,7 +106,7 @@ class FormatException(ActionException):
         self.value = value
 
     def __str__(self):
-        return "Format invalid: action = '{}', value = '{}'".format(self.action.name, self.value)
+        return "sirano:action:format: Unsupported format: action = '{}', value = '{}'".format(self.action.name, self.value)
 
 
 class PassException(ActionException):
