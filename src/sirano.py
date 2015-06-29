@@ -171,27 +171,24 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.project in args:
-        project = args.project
-
     if args.action == "process":
         if not os.path.isdir("projects/" + args.project):
             parser.error("Project '{}' not exists".format(args.project))
             exit(1)
         if args.phase == 0:
-            Sirano.pass_through(project)
+            Sirano.pass_through(args.project)
         elif args.phase == 1:
-            Sirano.phase_1(project)
+            Sirano.phase_1(args.project)
         elif args.phase == 2:
-            Sirano.phase_2(project)
+            Sirano.phase_2(args.project)
         elif args.phase == 3:
-            Sirano.phase_3(project)
+            Sirano.phase_3(args.project)
         elif args.phase == 4:
-            Sirano.phase_4(project)
+            Sirano.phase_4(args.project)
     elif args.action == "create":
-        Sirano.create(project)
+        Sirano.create(args.project)
     elif args.action == "archive":
         if not os.path.isdir("projects/" + args.project):
             parser.error("Project '{}' not exists".format(args.project))
             exit(1)
-        Sirano.archive(project)
+        Sirano.archive(args.project)

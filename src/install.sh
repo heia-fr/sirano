@@ -15,6 +15,7 @@ pip install tld
 pip install hexdump
 pip install datadiff
 pip install dnspython
+pip install pyyaml
 
 
 # Developpment
@@ -25,10 +26,8 @@ apt-get install npm -y
 apt-get install nodejs-legacy -y
 npm install -g bower
 
-cd projects/default/report/resources
-
 # Install report dependency
-bower install --config.interactive=false --allow-root
+( cd projects/default/report/resources && bower install --config.interactive=false --allow-root)
 
-# Remove DNS layer in Scapy
-rm /usr/local/lib/python2.7/dist-packages/scapy/layers dns.*
+# Set execution permission for user and group
+chmod gu+x sirano.py

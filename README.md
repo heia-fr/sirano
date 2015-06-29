@@ -32,28 +32,11 @@ This version is for testing purposes.
 
 ## Installation
 
-### Vagrant
-
-From the src folder :
+Tested on Ubuntu 14.04 LTS (Trusty Tahr)
 
 ```
-vagrant up
-```
-
-### Ubuntu
-
-Ubuntu 14.04 LTS (Trusty Tahr)
-
-```
-sudo apt-get update
-sudo apt-get install python-pip -y
-sudo apt-get install python-dev -y
-sudo pip install enum
-sudo pip install scapy
-sudo pip install python-magic
-sudo pip install netaddr
-sudo pip install tld
-sudo pip install hexdump
+sudo chmod u+x install.sh
+sudo ./install.sh
 ```
 
 ## Usage
