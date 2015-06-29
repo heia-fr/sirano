@@ -9,3 +9,12 @@
 
 # Ignore PyCharm Project
 /.idea
+
+# Ignore PYGPW cache
+*.cpickle
+
+# Ignore Temporary Files
+*.swp
+
+# Ignore Bower Components
+bower_components

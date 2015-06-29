@@ -1,28 +1,14 @@
 # -*- coding: utf-8 -*-
 #
-# This file is a part of Sirano.
-#
-# Copyright (C) 2015  HES-SO // HEIA-FR
-# Copyright (C) 2015  Loic Gremaud <loic.gremaud@grelinfo.ch>
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+# Copyright 2015 Loic Gremaud <loic.gremaud@grelinfo.ch>
 
 from heapq import heappush
+from operator import attrgetter
 import os
+import datetime
 
 from sirano.manager import Manager
+from sirano.utils import date_to_json
 
 
 class _FiletypeMetaclass(type):
@@ -47,6 +33,7 @@ class _FiletypeMetaclass(type):
                 fm[name] = cls
         else:
             FileManager.file_classes = dict()
+
 
 class FileManager(Manager):
     """
@@ -76,9 +63,15 @@ class FileManager(Manager):
         :type dict[str, File]
         """
 
+        self.current_file = None
+        """
+        Current file processed
+        :type: str
+        """
+
     def configure(self):
         if isinstance(self.conf, dict):
-            for name, data in self.conf.iteritems():
+            for name, data in self.conf.items():
                 if 'priority' in data:
                     self.__import_file(name, data['priority'])
                 else:
@@ -139,24 +132,71 @@ class FileManager(Manager):
                 if f_cls is not None:
                     f = f_cls(self.app, r_path)
                     self.files.append(f)
+                    self.__report_update_file(name, {'type': f.name,
+                                                     'size' : f.size})
 
-        self.files.sort(key=lambda f: f.priority)
+        self.files.sort(key=lambda x: x.priority)
 
     def anonymize_all(self):
         """Launch the anonymize method for all files"""
+        start = datetime.datetime.now()
         for f in self.files:
+            self.current_file = f.file
+            f_start = datetime.datetime.now()
             f.anonymize()
+            f_end = datetime.datetime.now()
+            self.__report_update_file(f.file, {'anonymize_duration': date_to_json(f_end - f_start)})
+        end = datetime.datetime.now()
+        self.app.report_update_phase('Anonymize', {'start': date_to_json(start),
+                                                 'end': date_to_json(end),
+                                                 'duration': date_to_json(end - start)})
 
     def discover_all(self):
         """Launch the discover method for all files"""
+        start = datetime.datetime.now()
         for f in self.files:
+            self.current_file = f.file
+            f_start = datetime.datetime.now()
             f.discover()
+            f_end = datetime.datetime.now()
+            self.__report_update_file(f.file, {'discover_duration': date_to_json(f_end - f_start)})
+        end = datetime.datetime.now()
+        self.app.report_update_phase('Discover', {'start': date_to_json(start),
+                                                'end': date_to_json(end),
+                                                'duration': date_to_json(end - start)})
 
     def validate_all(self):
         """Launch the validate method for all files"""
+        start = datetime.datetime.now()
         for f in self.files:
+            self.current_file = f.file
+            f_start = datetime.datetime.now()
             f.validate()
+            f_end = datetime.datetime.now()
+            self.__report_update_file(f.file, {'validate_duration': date_to_json(f_end - f_start)})
+        end = datetime.datetime.now()
+        self.app.report_update_phase('Validate', {'start': date_to_json(start),
+                                                'end': date_to_json(end),
+                                                'duration': date_to_json(end - start)})
 
+    def __report_update_file(self, name, values):
+        """
+        Update a file entry in the report
+        :param name: The name of the file
+        :type name: str
+        :param values: The values to update
+        :type values: dict
+        """
+        files = self.report.setdefault('files', list())
+        """:type: list[dict]"""
+        entry = None
+        for f in files:
+            if f['name'] == name:
+                entry = f
+        if entry is None:
+            entry = {'name': name}
+            files.append(entry)
+        entry.update(values)
 
 class File:
     """Superclass for all actions"""
@@ -175,13 +215,13 @@ class File:
 
     __metaclass__ = _FiletypeMetaclass
 
-    def __init__(self, app, file):
+    def __init__(self, app, a_file):
         """
         Constructor
         :param app: The apélication instance
         :rtype App
-        :param file: The relative path of the file from the in directory
-        :type file: str
+        :param a_file: The relative path of the file from the in directory
+        :type a_file: str
         """
         self.app = app
         """
@@ -189,17 +229,19 @@ class File:
         :type : App
         """
 
-        self.file = file
+        self.file = a_file
         """
         The relative path of the file from the in directory
         :type : str
         """
 
-        self.conf = app.conf.get('file', dict).get(self.name, dict())
+        self.conf = app.conf.setdefault('file', dict()).setdefault(self.name, dict())
         """
         The file configuration given by the YAML configuration file
         :type : dict[str, dict]
         """
+
+        self.size = self.__get_size()
 
     @classmethod
     def is_compatible(cls, filename):
@@ -238,3 +280,21 @@ class File:
         This method must be overridden
         """
         raise NotImplementedError
+
+    def __get_size(self):
+        """
+        Get the size of the file
+        :return: The size human readable
+        :rtype: str
+        """
+        statinfo = os.stat(os.path.join(self.app.project.input, self.file))
+        nbytes = statinfo.st_size
+
+        suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+        if nbytes == 0: return '0 B'
+        i = 0
+        while nbytes >= 1024 and i < len(suffixes)-1:
+            nbytes /= 1024.
+            i += 1
+        f = ('%.2f' % nbytes).rstrip('0').rstrip('.')
+        return '%s %s' % (f, suffixes[i])

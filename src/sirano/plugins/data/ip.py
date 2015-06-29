@@ -34,6 +34,12 @@ class IPData(Data):
 
     name = 'ip'
 
+    re_ip_find = re.compile(r"(?:(?:(?:\d{1,3}\.){3}\d{1,3}\.in-addr\.arpa)|((?:\d{1,3}\.){3}\d{1,3}))")
+    """
+    Simplified regular expression to find IP addresses
+    Force to not match PTR record
+    """
+
     re_ip = re.compile(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
     """The regular expression for a ip address"""
 
@@ -58,6 +64,7 @@ class IPData(Data):
         self.subnets = self.__get_subnets()
 
     def pre_save(self):
+        self.__pre_save_hosts()
         self.__pre_save_subnets()
 
     def process(self):
@@ -66,23 +73,20 @@ class IPData(Data):
         self.__process_hosts()
 
     def clear(self):
-        for k in self.hosts.iterkeys():
+        for k in self.hosts.keys():
             self.hosts[k] = ''
 
-    def add_value(self, ip):
+    def has_replacement(self, replacement):
+        return replacement in self.hosts.values()
 
+    def has_value(self, value):
+        return self.hosts.has_key(value)
+
+    def _add_value(self, ip):
         if ip not in self.hosts:
             self.hosts[ip] = None
-
-    def get_replacement(self, value):
-
-        r = self.hosts.get(value, None)
-
-        if r is None:
-            self.app.log.error("data:ip: Replacement value not found for '%s'", value)
-            return ''
-
-        return r
+            return True
+        return False
 
     def is_valid(self, value):
         """
@@ -93,6 +97,23 @@ class IPData(Data):
         """
         return self.re_ip.match(value) is not None
 
+    def get_number_of_values(self):
+        return len(self.hosts)
+
+    def _find_values(self, string):
+        founds = self.re_ip_find.findall(string)
+        values = filter(lambda v: self.is_valid(v), founds)
+        return values
+
+    def _get_replacement(self, value):
+        r = self.hosts.get(value, None)
+
+        if r is None:
+            self.app.log.error("data:ip: Replacement value not found for '%s'", value)
+            return ''
+
+        return r
+
     def __get_subnets(self):
         """
         Generate the internal representation of subnets
@@ -101,13 +122,12 @@ class IPData(Data):
         """
         subnets = dict()
 
-        for subnet, replacement in self.data.get('subnets', dict()).iteritems():
+        for subnet, replacement in self.data.setdefault('subnets', dict()).items():
             try:
                 subnet = IPNetwork(subnet)
 
                 if replacement: # is not None
                     replacement = IPNetwork(replacement)
-                    replacement.prefixlen = subnet.prefixlen
 
                 subnets[subnet] = replacement
             except Exception as e:
@@ -120,24 +140,42 @@ class IPData(Data):
     def __pre_save_subnets(self):
         """ Transform subnets property to be serialized """
         subnets = dict()
-        for subnet, replacement in self.subnets.iteritems():
+        for subnet, replacement in self.subnets.items():
             if replacement: # is not None
-                replacement = str(replacement.network)
-            subnets[str(subnet)] = replacement
+                replacement.prefixlen = subnet.prefixlen
+                replacement = str(replacement)
+            subnet = str(subnet)
+            subnets[subnet] = replacement
+            self.data_report_value('subnet', subnet, replacement)
         self.data['subnets'] = subnets
-
 
     def __process_subnets(self):
         for subnet, replacement in reversed(self.subnets.items()): # iterate from the shortest prefix to the longest
+            self.data_report_processed('subnet', 'number')
             if replacement is None:
-                replacement = self.__anonymize_subnet(subnet)
-                self.subnets[subnet] = replacement
+                try:
+                    replacement = self.__anonymize_subnet(subnet)
+                    self.subnets[subnet] = replacement
+                    self.data_report_processed('subnet', 'processed')
+                except Exception as e:
+                    self.data_report_processed('subnet', 'error')
+                    self.app.log.error("sirano:data:ip: Fail to generate a replacement value, subnet='{}', "
+                                       "exception='{}', message='{}".format(subnet, type(e), e.message))
+                    raise
 
     def __process_hosts(self):
-        for host, replacement in self.hosts.iteritems():
+        for host, replacement in self.hosts.items():
+            self.data_report_processed('host', 'number')
             if replacement is None or replacement == 'None': # is None
-                replacement = self.__anonymize_host(IPAddress(host))
-                self.hosts[host] = str(replacement)
+                try:
+                    replacement = self.__anonymize_host(IPAddress(host))
+                    self.hosts[host] = str(replacement)
+                    self.data_report_processed('host', 'processed')
+                except Exception as e:
+                    self.data_report_processed('host', 'error')
+                    self.app.log.error("sirano:data:ip: Fail to generate a replacement value, host='{}', host='{}', "
+                                       "exception='{}', message='{}'".format(host, type(e), e.message))
+                    raise
 
     def __get_blocks(self):
         """
@@ -149,7 +187,7 @@ class IPData(Data):
         for network in self.conf['blocks']:
             blocks.append(IPNetwork(network))
         # Sort by prefix length (longest to shortest)
-        blocks = sorted(blocks, key=lambda network: network.prefixlen, reverse=True)
+        blocks = sorted(blocks, key=lambda x: x.prefixlen, reverse=True)
         return blocks
 
     @staticmethod
@@ -191,7 +229,7 @@ class IPData(Data):
         :return: the replacement subnet or None if not found
         :rtype IPNetwork | None
         """
-        for subnet, replacement in self.subnets.iteritems():
+        for subnet, replacement in self.subnets.items():
             if replacement and ip_address in subnet:
                 return replacement
         return None
@@ -204,7 +242,7 @@ class IPData(Data):
         :return: True if exists, False otherwise
         :rtype True | False
         """
-        for subnet, replacement in self.subnets.iteritems():
+        for subnet, replacement in self.subnets.items():
             if replacement and subnet in supernet:
                 return True
         return False
@@ -217,8 +255,7 @@ class IPData(Data):
         :return: True if exists, False otherwise
         :rtype True | False
         """
-        # TODO Optimize this search
-        for subnet in self.subnets.iterkeys():
+        for subnet in self.subnets.keys():
             if host in subnet:
                 return True
         return False
@@ -233,7 +270,7 @@ class IPData(Data):
         :rtype True | False
         """
         # TODO Optimize this search
-        for replacement in self.subnets.itervalues():
+        for replacement in self.subnets.values():
             if replacement == subnet:
                 return True
         return False
@@ -273,7 +310,7 @@ class IPData(Data):
         subnet_bytes = str(subnet.network).split('.')
         host_bytes = str(host).split('.')
 
-        for byte in xrange(byte_to_anonymize):
+        for byte in range(byte_to_anonymize):
             host_bytes[byte] = subnet_bytes[byte]
 
         new_host = IPAddress('.'.join(host_bytes))
@@ -356,7 +393,7 @@ class IPData(Data):
 
         bytes_rand = defaultdict(list)
 
-        for byte in xrange(byte_to_anonymize):
+        for byte in range(byte_to_anonymize):
             # Transform min and max byte for respecting the number of character
             byte_len = bytes_len[byte]
             byte_max = min(int('9' * byte_len), bytes_max[byte]) # The last byte that have the same char number
@@ -366,10 +403,10 @@ class IPData(Data):
             bytes_rand[byte] = range(byte_min, byte_max + 1)
             random.shuffle(bytes_rand[byte])
 
-        def replace_byte(byte):
-            for byte_rand in bytes_rand[byte]:
-                bytes_new[byte] = byte_rand
-                new_subnet = replace_byte(byte + 1)
+        def replace_byte(a_byte):
+            for byte_rand in bytes_rand[a_byte]:
+                bytes_new[a_byte] = byte_rand
+                new_subnet = replace_byte(a_byte + 1)
                 if new_subnet is not None:
                     return new_subnet
             else:
@@ -378,10 +415,11 @@ class IPData(Data):
                     return new_subnet
                 else:
                     return None
-
-            raise Exception('Subnet is not anonymized')
-
         return replace_byte(0)
+
+    def __pre_save_hosts(self):
+        for value, replacement in self.hosts.items():
+            self.data_report_value('host' ,value, replacement)
 
 
 

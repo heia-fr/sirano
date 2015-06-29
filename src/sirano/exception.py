@@ -1,23 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# This file is a part of Sirano.
-#
-# Copyright (C) 2015  HES-SO // HEIA-FR
-# Copyright (C) 2015  Loic Gremaud <loic.gremaud@grelinfo.ch>
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+# Copyright 2015 Loic Gremaud <loic.gremaud@grelinfo.ch>
 
 
 class SiranoException(Exception):
@@ -25,7 +8,7 @@ class SiranoException(Exception):
     Root Exception for the Sirano application
     """
 
-    def __init__(self, message):
+    def __init__(self, message=''):
         """
         Initialize the exception with a message
 
@@ -35,19 +18,23 @@ class SiranoException(Exception):
         self.message = message
 
     def __str__(self):
-        return "sirano: " + self.message
+        return "sirano:" + self.message
+
 
 class ScapyPacketException(SiranoException):
     """
     Exception for the file plugin
     """
-    def __init__(self, message = ''):
+
+    def __init__(self, message=''):
         super(ScapyPacketException, self).__init__(message)
+
 
 class DropException(ScapyPacketException):
     """
     Exception when the entire element must be dropped
     """
+
     def __str__(self):
         return "sirano:file:drop: " + self.message
 
@@ -56,6 +43,7 @@ class ImplicitDropException(DropException):
     """
     Exception when the DropException is not explicitly requested by the user
     """
+
     def __str__(self):
         return "sirano:file:drop:implicit: " + self.message
 
@@ -75,38 +63,49 @@ class ActionException(SiranoException):
     """
 
     def __str__(self):
-        return "sirano:action: " + self.message
+        return "sirano:action: message = '{}'".format(self.message)
+
 
 class DataException(SiranoException):
     """
     Exception for Data plugins
     """
 
-    def __init__(self, data, message):
+    def __init__(self, data, message=''):
         super(DataException, self).__init__(message)
         self.data = data
 
     def __str__(self):
-        return "sirano:data:{}:".format(self.data.name) + self.message
+        return "sirano:data: data='{}', message = '{}'".format(self.data.name, self.message)
 
-class FormatException(ActionException):
+
+class InvalidValueDataException(DataException):
     """
-    Exception when the format of a value is invalid
+    Exception when a value is not valid for the data plugin
     """
 
-    def __init__(self, action, value):
-        """Initialize the exception for a specified action and value
-
-         :param action: The name of the action that generate this exception
-         :type action: Action
-         :param value: The value concerned by this exception
-         :type value: str
+    def __init__(self, data, value, message=''):
         """
-        self.action = action
+        Constructor
+        :param data: The data that have generated the exception
+        :type data: sirano.data.Data
+        :param value: The value that is invalid
+        :type value: str
+        """
+        super(InvalidValueDataException, self).__init__(data, message)
         self.value = value
 
     def __str__(self):
-        return "sirano:action:format: Unsupported format: action = '{}', value = '{}'".format(self.action.name, self.value)
+        return "sirano:data: data = '{}', value = '{}', message = '{}'".format(self.data.name, self.value, self.message)
+
+
+class UnsupportedFormatException(ActionException):
+    """
+    Exception when the format of a value is invalid
+    """
+    def __str__(self):
+        return "sirano:action:Unsupported format: message = '{}'".format(
+            self.message)
 
 
 class PassException(ActionException):

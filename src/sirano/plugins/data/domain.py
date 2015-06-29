@@ -18,10 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+from sirano.utils import word_generator
 
-import random
 import re
-import string
 
 from sirano.data import Data
 from tld import get_tld
@@ -34,56 +33,43 @@ class DomainData(Data):
 
     name = 'domain'
 
-    re_domain = re.compile(r"^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z0-9]{2,}$")
-    """The regular expression for a domain name"""
+    re_domain = re.compile(r"^((?:[A-Z0-9](?:[A-Z0-9\-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6})$", re.IGNORECASE)
+    """The regular expression to match a domain name"""
+
+    re_domain_find = re.compile(r"^(([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z0-9]{2,})$", re.IGNORECASE)
+    """The regular expression for finding a domain name"""
 
     def __init__(self, app):
         super(DomainData, self).__init__(app)
+
         self.domains = None
-        self.tlds = self.conf.get('tlds', list)
+        """
+        Domain names with replacement values
+        :type: dict[str, str]
+        """
 
-    def get_replacement(self, value):
-
-        r = self.domains.get(value, None)
-
-        if r is None:
-            self.app.log.error("data:domain: Replacement value not found for '%s'", value)
-            return ''
-
-        return r
+        self.tlds = self.conf.get('tlds', list())
+        """
+        Top level domains
+        :type: list[str]
+        """
 
     def post_load(self):
         self.domains = self.link_data('domains', dict)
 
     def process(self):
-
-        for k, v in self.domains.iteritems():
-            if v is None:
-                r = ''
-                for c in k:
-                    if c is not '.':
-                        c = random.choice(string.ascii_lowercase)
-                    r += c
-
-                self.domains[k] = r
-
-    def clear(self):
-        for k in self.domains.iterkeys():
-            self.domains[k] = ''
-
-    def __tld_exist(self, domain):
-        """
-        Check if domain has an existent TLD in local list
-        :param domain: the domain to check
-        :type domain: str
-        :return: True if exist, else False
-        :rtype bool
-        """
-        for tld in self.tlds:
-            if domain.endswith('.' + tld):
-                return True
-
-        return False
+        for domain, replacement in self.domains.items():
+            self.data_report_processed('domain', 'number')
+            if replacement is None:
+                try:
+                    self.__process_domain(domain)
+                    self.data_report_processed('domain', 'processed')
+                except Exception as e:
+                    self.data_report_processed('domain', 'error')
+                    self.app.log.error("data:domain: Fail to process domain='{}', exception='{}', message='{}'".format(
+                        domain, type(e), e.message
+                    ))
+                    raise
 
     def is_valid(self, value):
 
@@ -100,9 +86,83 @@ class DomainData(Data):
 
         return self.re_domain.match(value) is not None
 
-    def add_value(self, value):
+    def get_number_of_values(self):
+        return len(self.domains)
 
+    def pre_save(self):
+        for value, replacement in self.domains.items():
+            self.data_report_value('domain' ,value, replacement)
+
+    def has_value(self, value):
+        return self.domains.has_key(value)
+
+    def has_replacement(self, replacement):
+        return replacement in self.domains.values()
+
+    def _find_values(self, string):
+        founds = self.re_domain_find.findall(string)
+        values =  filter(lambda v: self.is_valid(v), founds)
+        return values
+
+    def _add_value(self, value):
         if value not in self.domains:
             self.domains[value] = None
+            return True
+        return False
 
+    def _get_replacement(self, value):
 
+        r = self.domains.get(value, None)
+
+        if r is None:
+            self.app.log.error("data:domain: Replacement value not found for '%s'", value)
+            return ''
+
+        return r
+
+    def __tld_exist(self, domain):
+        """
+        Check if domain has an existent TLD in local list
+        :param domain: the domain to check
+        :type domain: str
+        :return: True if exist, else False
+        :rtype bool
+        """
+        for tld in self.tlds:
+            if domain.endswith('.' + tld):
+                return True
+
+        return False
+
+    def __process_domain(self, domain):
+        """
+        Process domain creates replacement values
+        :param domain: The domain
+        :type domain: str
+        :return: Generator with domain level
+        :rtype: list[str]
+        """
+        domain_split = domain.split('.')
+        domain_split.reverse()
+        domain_level = ''
+        replacement_level = ''
+
+        for index, label in enumerate(domain_split):
+            if index != 0:
+                domain_level = '{}.{}'.format(label, domain_level)
+            else:
+                domain_level = label
+
+            replacement = self.domains.get(domain_level, None)
+            if replacement is not None:
+                replacement_level = replacement
+            else:
+                for replacement_label in word_generator(len(label)):
+                    if index != 0:
+                        replacement_level = '{}.{}'.format(replacement_label, replacement_level)
+                    else:
+                        replacement_level = replacement_label
+
+                    if replacement_level not in self.domains.keys():
+                        break
+                self.domains[domain_level] = replacement_level

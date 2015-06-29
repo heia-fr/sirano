@@ -22,7 +22,7 @@
 import re
 
 from sirano.action import Action
-from sirano.exception import FormatException
+from sirano.exception import UnsupportedFormatException
 
 
 class SIPIdentityAction(Action):
@@ -72,7 +72,7 @@ class SIPIdentityAction(Action):
         sip_identity_m = self.re_sip_identity.match(value)
 
         if sip_identity_m is None:
-            raise FormatException(self.name, value)
+            raise UnsupportedFormatException()
 
         display_name = sip_identity_m.group('display_name')
         sip_uri = sip_identity_m.group('sip_uri')
@@ -80,12 +80,10 @@ class SIPIdentityAction(Action):
         sip_uri_m = self.re_sip_uri.match(sip_uri)
 
         if sip_uri_m is None:
-            raise FormatException(self.name, value)
+            raise UnsupportedFormatException()
 
         if display_name is not None:
             value = value.replace(display_name, self.app.manager.data.get_data('name').get_replacement(display_name))
-
-        # d = dict()
 
         user = sip_uri_m.group('user')
 
@@ -113,7 +111,7 @@ class SIPIdentityAction(Action):
         sip_uri = self.re_sip_uri.match(sip_uri)
 
         if sip_uri is None:
-            raise FormatException(self.name, value)
+            raise UnsupportedFormatException()
 
         user = sip_uri.group('user')
         host = sip_uri.group('host')
@@ -124,7 +122,10 @@ class SIPIdentityAction(Action):
         if user is not None:
             self.app.manager.data.add_value(user)
 
+
         self.app.manager.data.add_value(host)
+
+
 
 
 

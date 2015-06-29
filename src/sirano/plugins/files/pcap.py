@@ -24,83 +24,14 @@ import os.path
 import errno
 
 import magic
-from scapy.packet import Packet, NoPayload
+from scapy.packet import Packet
 from scapy.utils import PcapWriter, PcapReader
 from enum import Enum
+import subprocess
 from sirano.app import Phase
 
 from sirano.exception import ExplicitDropException, ImplicitDropException
 from sirano.file import File
-
-class _LayerStats(object):
-    def __init__(self):
-        self.dropped = 0
-        self.anonymized = 0
-
-    def __str__(self):
-        return 'dropped = {}, anonymized = {}'.format(self.dropped, self.anonymized)
-
-class _PCAPStats(object):
-    def __init__(self, app, name):
-        """
-        Statistic
-
-        Contain all statistic for the report
-        """
-        self.name = name
-        self.app = app
-        self.layers = defaultdict(_LayerStats)
-        self.dropped = 0
-        self.anonymized = 0
-
-    def packet_dropped(self, packet):
-        self.dropped += 1
-        layer = packet
-        while not isinstance(layer, NoPayload):
-            layer_name = layer.__class__.__name__
-            self.layers[layer_name].dropped += 1
-            layer = layer.payload  # Get next layer
-
-    def packet_anonymised(self, packet):
-        self.anonymized += 1
-        layer = packet
-        while not isinstance(layer, NoPayload):
-            layer_name = layer.__class__.__name__
-            self.layers[layer_name].anonymized += 1
-            layer = layer.payload  # Get next layer
-
-    def __str__(self):
-        text = "PCAP file\n" \
-              "---------\n" \
-              "packet: dropped = {}, anonymized = {}, total = {}\n".format(self.dropped, self.anonymized, self.total)
-        for layer, stats in self.layers.iteritems():
-            text += "'{}' : {}\n".format(layer, stats)
-
-        return text
-
-    @property
-    def total(self):
-        return self.dropped + self.anonymized
-
-    def save(self):
-        """
-        Save the statistic to a file
-        """
-
-        path = os.path.join(self.app.project.report, os.path.splitext(self.name)[0] + '.txt')
-
-        try:
-            os.makedirs(self.app.project.report)
-        except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(self.app.project.report):
-                pass
-            else:
-                raise
-
-        filepath = open(path, 'w')
-
-        filepath.write(self.__str__())
-        filepath.close()
 
 
 class _LayerActionEnum(Enum):
@@ -122,16 +53,16 @@ class _LayerAction(object):
 
 
 class PCAPFile(File):
-
     name = 'pcap'
 
-    def __init__(self, app, file):
-        super(PCAPFile, self).__init__(app, file)
-
+    def __init__(self, app, a_file):
+        super(PCAPFile, self).__init__(app, a_file)
+        self.validation_file_tshark = os.path.join(self.app.project.validation,
+                                                   os.path.splitext(self.file)[0] + '.tshark.txt')
         self.layers = defaultdict(lambda: _LayerAction(app))
         self.app.log.info("Filetype 'pcap' initialized")
 
-    def __process_packets(self, packets, out_writer, drop_writer, validation_file, stat):
+    def __process_packets(self, packets, out_writer, drop_writer, validation_file):
         """
         :type packets: list[Packet]
         :return A tuple with the number of packets anonymized and the number of packets dropped
@@ -154,7 +85,7 @@ class PCAPFile(File):
                         validation = self.app.packet.validate(packet)
                         if validation is not None:
                             validation_file.write("\n\nPacket id {}:\n  ".format(packet_id))
-                            validation = validation.replace('\n', '\n  ') # Indent
+                            validation = validation.replace('\n', '\n  ')  # Indent
                             validation_file.write(validation)
 
                 except Exception as e:
@@ -163,22 +94,20 @@ class PCAPFile(File):
                                                                                                 packet.summary()))
                     elif isinstance(e, ImplicitDropException):
                         self.app.log.warning("Packet implicitly dropped: id = '{}', {}, {}".format(packet_id, e.message,
-                                                                                                 packet.summary()))
+                                                                                                   packet.summary()))
                     else:
                         raise
 
                     if self.app.phase is Phase.phase_3:
                         drop_writer.write(packet_backup)
-                    stat.packet_dropped(packet)
 
                 else:
                     if self.app.phase is Phase.phase_3:
                         out_writer.write(packet)
-                    stat.packet_anonymised(packet)
 
             except Exception as e:
-                self.app.log.critical("Unexpected error: id = '{}', {}, {}".format(packet_id, e.message,
-                                                                                   packet.summary()))
+                self.app.log.critical("Unexpected error: id = '{}', exception = '{}', message = '{}', {}".format(
+                    packet_id, type(e), e.message, packet.summary()))
 
     def __process_file(self, name):
 
@@ -211,7 +140,7 @@ class PCAPFile(File):
             drop_writer = SiranoPcapWriter(drop_path, append=True)
 
         elif self.app.phase is Phase.phase_4:
-            path = os.path.join(self.app.project.validation, os.path.splitext(name)[0] + '.txt')
+            path = os.path.join(self.app.project.validation, os.path.splitext(name)[0] + '.clean.txt')
 
             try:
                 os.makedirs(self.app.project.validation)
@@ -223,18 +152,13 @@ class PCAPFile(File):
 
             validation_file = open(path, 'w')
 
-        stat = _PCAPStats(self.app, name)
-
         try:
             self.__process_packets(packets,
                                    out_writer,
                                    drop_writer,
-                                   validation_file,
-                                   stat)
+                                   validation_file)
         except Exception as e:
             self.app.log.critical("file:pacp: Unexpected error: " + str(e))
-        else:
-            stat.save()
         finally:
             if self.app.phase is Phase.phase_3:
                 out_writer.close()
@@ -250,12 +174,42 @@ class PCAPFile(File):
         self.__process_file(self.file)
 
     def validate(self):
+        self.app.manager.data.clean_mode = True
         self.__process_file(self.file)
+        self.app.manager.data.clean_mode = False
+        self.__validate_create_tshark()
+        self.__validate_check_tshark()
 
     @classmethod
     def is_compatible(cls, path):
         typedesc = magic.from_file(path)
         return str(typedesc).startswith("tcpdump capture file")
+
+    def __validate_create_tshark(self):
+        out_file = os.path.join(self.app.project.output, self.file)
+        val_file = self.validation_file_tshark
+
+        command = "tshark -r {} -V > {}".format(out_file, val_file)
+        subprocess.call(command, shell=True)
+
+    def __validate_check_tshark(self):
+        values = defaultdict(list)
+        with open(self.validation_file_tshark) as a_file:
+            for line in a_file:
+                values_line = self.app.manager.data.find_values_all(line)
+                for data, value in values_line.items():
+                    values[data].extend(value)
+
+        values = dict(map(lambda (k, v): (k, set(v)), values.items()))
+
+        for data_name, set_of_values in values.items():
+            data = self.app.manager.data.get_data(data_name)
+            for value in set_of_values:
+                if not data.has_replacement(value):
+                    self.app.log.error(
+                        "sirano:file:pcap: Validation error value is not replaced, data = '{}', value = '{}'".format(
+                            data_name, value))
+
 
 # noinspection PyClassicStyleClass
 class SiranoPcapWriter(PcapWriter):

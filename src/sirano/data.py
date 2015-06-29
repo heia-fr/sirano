@@ -1,30 +1,17 @@
 # -*- coding: utf-8 -*-
 #
-# This file is a part of Sirano.
-#
-# Copyright (C) 2015  HES-SO // HEIA-FR
-# Copyright (C) 2015  Loic Gremaud <loic.gremaud@grelinfo.ch>
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+# Copyright 2015 Loic Gremaud <loic.gremaud@grelinfo.ch>
 
 from collections import defaultdict
 import os
+import re
+import datetime
 
 import yaml
+from sirano.exception import DataException, InvalidValueDataException
 
 from sirano.manager import Manager
+from sirano.utils import date_to_json, AppBase
 
 
 class _DataMetaclass(type):
@@ -66,7 +53,7 @@ class DataManager(Manager):
         for f in os.listdir(dirpath):
             if f not in ['.', '..', '__init__.py'] and f.endswith('.py'):
                 self.__create_data(f[:-3])
-
+        self.__report_data_reset()
         self.app.log.debug("manager:data: Configured")
 
     def get_data(self, name):
@@ -99,23 +86,36 @@ class DataManager(Manager):
 
     def load_all(self):
         """Call load method for all Data instance"""
-        for _, d in self.data.iteritems():
+        for _, d in self.data.items():
             d.load()
 
     def process_all(self):
         """Call process method for all Data instance"""
-        for _, d in self.data.iteritems():
+        start = datetime.datetime.now()
+        for _, d in self.data.items():
             d.process()
-
-    def clear_all(self):
-        """Call clear method for all Data instance"""
-        for _, d in self.data.iteritems():
-            d.clear()
+        end = datetime.datetime.now()
+        self.app.report_update_phase('Generate', {'start': date_to_json(start),
+                                     'end': date_to_json(end),
+                                     'duration': date_to_json(end - start)})
 
     def save_all(self):
         """Call save method for all Data instance"""
-        for _, d in self.data.iteritems():
+        for d in self.data.values():
             d.save()
+
+    def find_values_all(self, string):
+        """
+        Call find_values method for all Data instance
+        :param string: The string where search
+        :type string: str
+        :return: Dictionnary with data name and values
+        :rtype: dict[str, list[str]]
+        """
+        values = dict()
+        for name, data in self.data.items():
+            values[name] = data.find_values(string)
+        return  values
 
     def guess_data(self, value):
         """
@@ -130,7 +130,8 @@ class DataManager(Manager):
 
         l = dict()
 
-        for n, d in self.data.iteritems():
+
+        for n, d in self.data.items():
             if d.is_valid(value):
                 l[n] = d
 
@@ -174,8 +175,49 @@ class DataManager(Manager):
         d = self.guess_data(value)
         return d.get_replacement(value)
 
-#TODO extent AppBase
-class Data(object):
+    def report_data_increment(self, data, a_property):
+        data_list = self.report.setdefault('data', list())
+        """:type: list[dict]"""
+        entry = None
+        for d in data_list:
+            if d['name'] == data.name:
+                entry = d
+        if entry is None:
+            entry = {'name': data.name,
+                     'invalid': 0,
+                     'error': 0,
+                     'discovered': 0,
+                     'added': 0}
+            data_list.append(entry)
+        entry[a_property] += 1
+
+    def report_stats(self, data):
+        stats = self.report.setdefault('stats', list())
+        """:type: list[dict]"""
+
+        entry = None
+        for stat in stats:
+            if stat['name'] == data.name:
+                entry = stat
+
+        if entry is None:
+            entry = {'name': data.name}
+            stats.append(entry)
+
+        entry['number'] = data.get_number_of_values()
+
+    def __report_data_reset(self):
+        """
+        Reset the report data
+        """
+        for d in self.report.setdefault('data', list()):
+            d['invalid'] = 0
+            d['error'] = 0
+            d['discovered'] = 0
+            # Added is not reset for preserving the counter from the first discovery
+
+
+class Data(AppBase):
     """
     Superclass for all Data plugins
     """
@@ -186,28 +228,50 @@ class Data(object):
     __metaclass__ = _DataMetaclass
 
     def __init__(self, app):
-        """
-        :param app: The application instance
-        :type app: App
-        """
-
-        self.app = app
-        """The application instance"""
+        super(Data, self).__init__(app)
 
         self.app.log.debug('data:{}:__init__()'.format(self.name))
 
         self.path = os.path.join(self.app.project.data, self.name + '.yml')
         """The path of the YAML file that contain the data is stored"""
 
-        self.conf = app.conf.get('data', dict).get(self.name, dict)
-        """The data configuration given by the YAML configuration file"""
+        self.conf = app.conf.setdefault('data', dict()).setdefault(self.name, dict())
+        """
+        The data configuration given by the YAML configuration file
+        :type: dict[str, object]
+        """
 
         self.data = None
         """Data from the YAML file"""
 
+        self.manager = self.app.manager.data
+        """
+        Data manager
+        :type: DataManager
+        """
+
+        self.report = app.report.setdefault('plugins', dict()).setdefault('data', dict()).setdefault(self.name, dict())
+        """
+        Report data for the JSON file
+        :type: dict[str, object]
+        """
+
+        self.clean_mode = False
+        """
+        Clean mode, if True all replacement value will be an empty string
+        :type: True | False
+        """
+
+        self.__exclusion = list()
+        """
+        List of regular expression to exclude in find_values()
+        :type: list
+        """
+
     def load(self):
         """Load data from the YAML file"""
         self.app.log.debug("data:{}:load()".format(self.name))
+        self.__data_report_reset()
 
         if os.path.isfile(self.path):
             with file(self.path) as f:  # Read only by default
@@ -217,6 +281,12 @@ class Data(object):
             self.data = defaultdict(dict)
 
         self.app.log.debug("data:{}: Data loaded: File \"{}\"".format(self.name, self.path))
+
+        exclusions = self.app.conf.get('data', dict()).get('global', dict()).get('find-exclusion', list())
+        if exclusions:
+            for exclusion in exclusions:
+                self.__exclusion.append(re.compile(exclusion))
+
         self.post_load()
 
     def post_load(self):
@@ -240,6 +310,8 @@ class Data(object):
     def save(self):
         """Save data to the YAML file"""
 
+        self.manager.report_stats(self)
+
         self.pre_save()
 
         self.app.log.debug('data:{}:save()'.format(self.name))
@@ -257,23 +329,36 @@ class Data(object):
         """
         raise NotImplementedError
 
-    def clear(self):
-        """
-        Process data
-
-        This method must be overridden. It makes all replacement value empty.
-        """
-        raise NotImplementedError
-
-    def add_value(self, value):
+    def add_value(self, value, validate=True):
         """
         Add a value to the data
-
-        This method must be overloaded.
-
-        :param value: The data to add
+        :param value: The value to add
         :type value: str
-        :param validate: Validate the value by default
+        :param validate: Validate the value (True by default)
+        :type validate: True | False
+        :return True if the value is added | False otherwise
+        :raise DataException: The value is not valid
+        """
+        if (not validate) or self.is_valid(value):
+            try:
+                added = self._add_value(value)
+                if added:
+                    self.manager.report_data_increment(self, 'added')
+                self.manager.report_data_increment(self, 'discovered')
+                return added
+            except Exception:
+                self.manager.report_data_increment(self, 'error')
+                raise
+        else:
+            self.manager.report_data_increment(self, 'invalid')
+            raise InvalidValueDataException(self, value)
+
+    def _add_value(self, value):
+        """
+        Method called by add_value()
+        :param value: The value to add
+        :type value: str
+        :return True if
         :raise DataException: The value is not valid
         """
         raise NotImplementedError
@@ -281,9 +366,19 @@ class Data(object):
     def get_replacement(self, value):
         """
         Get the replacement value for the given value
+        :param value: The value to replace
+        :type value: str
+        :return The replacement value
+        :rtype str
+        """
+        if self.clean_mode:
+            return ''
+        else:
+            return self._get_replacement(value)
 
-        This method must be overridden.
-
+    def _get_replacement(self, value):
+        """
+        Method called by get_replacement()
         :param value: The value to replace
         :type value: str
         :return The replacement value
@@ -291,16 +386,23 @@ class Data(object):
         """
         raise NotImplementedError
 
-    def has_replacement(self, value):
+    def has_value(self, value):
         """
-        Check if a replacement value exist for the given value
-
-        THis method must be overridden
-
-        :param value: The value to check
+        Check if the value exist
+        :param value: The value
         :type value: str
+        :return: True if exists, False otherwise
+        :rtype: True | False
+        """
+        raise  NotImplementedError
+
+    def has_replacement(self, replacement):
+        """
+        Check if a replacement value exist
+        :param replacement: The replacement to check
+        :type replacement: str
         :return: True if a replacement value exists, else False
-        :rtype boolean
+        :rtype True | False
         """
         raise NotImplementedError
 
@@ -331,3 +433,85 @@ class Data(object):
         if (not self.data.has_key(name)) or (self.data[name] is None):
             self.data[name] = default()
         return self.data[name]
+
+    def get_number_of_values(self):
+        """
+        Get the number of values
+
+        This method must be overridden.
+
+        :return: The number of values
+        :rtype: int
+        """
+        raise NotImplementedError
+
+    def find_values(self, string):
+        """
+        Find values present in the string
+        :param string: The string
+        :return: The list of values
+        :rtype: list[str]
+        """
+        string = string.replace('\n', ' ').replace('\r', ' ') # Remove new line
+
+        for re_exclusion in self.__exclusion:
+            for exclusion in re_exclusion.findall(string):
+                string = string.replace(exclusion, ' ')
+
+        return self._find_values(string)
+
+    def _find_values(self, string):
+        """
+        Method called by find_values
+        :param string: The string
+        :return: The list of values
+        :rtype: list[str]
+        """
+        raise NotImplementedError
+
+    def data_report_processed(self, name, event):
+        """
+        Method called when a data is processed
+        :param name: The name of the data type
+        :type name: str
+        :param event: The event name
+        :type event: str
+        """
+        data = self.report.setdefault('processing', list())
+
+        entry = None
+        for d in data:
+            if d.get('name') == name:
+                entry = d
+        if entry is None:
+            entry = {'name': name,
+                     'processed': 0,
+                     'error': 0,
+                     'number': 0}
+            data.append(entry)
+
+        entry[event] += 1
+
+    def data_report_value(self, a_type, value, replacement):
+        """
+        Method called before saving database
+        :param a_type: The type name
+        :type a_type: str
+        :param value: The value
+        :type value: str
+        :param replacement: The replacement value
+        :type replacement: str
+        """
+        data = self.report.setdefault('values', dict()).setdefault(a_type, list())
+        data.append({'value': value, 'replacement': replacement})
+
+    def __data_report_reset(self):
+        # Processing
+        data = self.report.setdefault('processing', list())
+        for d in data:
+            d['number'] = 0
+            d['error'] = 0
+            # processed should not be reseated
+
+        # Values
+        self.report['values'] = dict()

@@ -23,6 +23,8 @@
 """SIRANO - SIP/RTP Trafic Anonymizer"""
 
 import argparse
+import os
+import unittest
 
 from sirano.app import App, Phase
 
@@ -31,118 +33,165 @@ class Sirano:
     """
     Class for the sirano launcher
     """
+    def __init__(self):
+        pass
 
-    def __init__(self, project_id):
-        """
-        Initialize the Sirano launcher
-
-        :param project_id: The project reference id
-        :type project_id: str
-        """
-        self.app = App(project_id)
-        self.app.manager.data.load_all()
-
-    def phase_1(self):
+    @staticmethod
+    def phase_1(project_name):
         """
         Discovery phase
         """
+        app = App(project_name)
+        app.load()
 
-        self.app.phase = Phase.phase_1
-        self.app.manager.file.add_files()
-        self.app.manager.file.discover_all()
-        self.app.manager.data.save_all()
-        self.app.log.info("Phase 1: discovery complete")
+        app.phase = Phase.phase_1
+        app.manager.file.add_files()
+        app.manager.file.discover_all()
+        app.manager.data.save_all()
+        app.log.info("Phase 1: discovery complete")
+        app.save_report()
 
-    def phase_2(self):
+    @staticmethod
+    def phase_2(project_name):
         """
         Generation phase
         """
+        app = App(project_name)
+        app.load()
 
-        self.app.phase = Phase.phase_2
-        self.app.manager.data.process_all()
-        self.app.manager.data.save_all()
-        self.app.log.info("Phase 2: generation complete")
+        app.phase = Phase.phase_2
+        app.manager.data.process_all()
+        app.manager.data.save_all()
+        app.log.info("Phase 2: generation complete")
+        app.save_report()
 
-    def phase_3(self):
+    @staticmethod
+    def phase_3(project_name):
         """
         Anonymization phase
         """
-        self.app.phase = Phase.phase_3
-        self.app.manager.file.add_files()
-        self.app.manager.file.anonymize_all()
-        self.app.log.info("Phase 3: anonymization complete")
+        app = App(project_name)
+        app.load()
 
-    def phase_4(self):
+        app.phase = Phase.phase_3
+        app.manager.file.add_files()
+        app.manager.file.anonymize_all()
+        app.log.info("Phase 3: anonymization complete")
+        app.save_report()
+
+    @staticmethod
+    def phase_4(project_name):
         """
         Validation phase
         """
-        self.app.phase = Phase.phase_4
-        self.app.manager.file.add_files()
-        self.app.manager.data.clear_all()
-        self.app.manager.file.validate_all()
-        self.app.log.info("Phase 4: validation complete")
+        app = App(project_name)
+        app.load()
 
-    def pass_through(self):
+        app.phase = Phase.phase_4
+        app.manager.file.add_files()
+        app.manager.file.validate_all()
+        app.log.info("Phase 4: validation complete")
+        app.save_report()
+
+    @staticmethod
+    def pass_through(project_name):
         """
         Pass through all phases
         """
-        self.app.log.info("Pass throught start")
-        self.app.phase = Phase.phase_1
-        self.app.manager.file.add_files()
-        self.app.manager.file.discover_all()
-        self.app.log.info("Phase 1: discovery complete")
+        app = App(project_name)
+        app.load()
 
-        self.app.phase = Phase.phase_2
-        self.app.manager.data.process_all()
-        self.app.manager.data.save_all()
-        self.app.log.info("Phase 2: generation complete")
+        app.log.info("Pass throught start")
+        app.phase = Phase.phase_1
+        app.manager.file.add_files()
+        app.manager.file.discover_all()
+        app.manager.data.save_all()
+        app.log.info("Phase 1: discovery complete")
 
-        self.app.phase = Phase.phase_3
-        self.app.manager.file.anonymize_all()
-        self.app.log.info("Phase 3: anonymization complete")
+        app.phase = Phase.phase_2
+        app.manager.data.process_all()
+        app.manager.data.save_all()
+        app.log.info("Phase 2: generation complete")
 
-        self.app.phase = Phase.phase_4
-        self.app.manager.data.clear_all()
-        self.app.manager.file.validate_all()
-        self.app.log.info("Phase 4: validation complete")
+        app.phase = Phase.phase_3
+        app.manager.file.anonymize_all()
+        app.log.info("Phase 3: anonymization complete")
+
+        app.phase = Phase.phase_4
+        app.manager.file.validate_all()
+        app.log.info("Phase 4: validation complete")
+
+        app.save_report()
+
+    @staticmethod
+    def create(project_name):
+        """
+        Create a new project
+        :param project_name: The project name
+        :type project_name: str
+        """
+        app = App(project_name)
+        app.create()
+
+    @staticmethod
+    def archive(project_name):
+        """
+        Archive the project
+        :param project_name: The project name
+        :type project_name: str
+        """
+        app = App(project_name)
+        app.archive()
+
 
 if __name__ == '__main__':
     __author__ = "Loic Gremaud <loic.gremaud@grelinfo.ch>"
     __copyright__ = "Copyright (C) 2015 Loic Gremaud"
     __license__ = "Licence"
-    __version__ = "0.1.2"
+    __version__ = "0.2.1"
 
     parser = argparse.ArgumentParser("sirano")
-    parser.add_argument("project", help="The project reference ID")
-    parser.add_argument("phase", type=int, choices=[0, 1, 2, 3, 4],
-                        help="The phase number ("
-                             "0 = pass through, "
-                             "1 = discovery, "
-                             "2 = generation, "
-                             "3 = anonymization and "
-                             "4 = validation)")
+    subparsers = parser.add_subparsers(title='action', help="The action to start", dest="action")
+
+    parser_process = subparsers.add_parser('process', help="Process a anonymization phase")
+    parser_process.add_argument("phase", type=int, choices=[0, 1, 2, 3, 4],
+                                help="The phase number : {"
+                                     "0: pass through, "
+                                     "1: discovery, "
+                                     "2: generation, "
+                                     "3: anonymization and "
+                                     "4: validation}")
+    parser_process.add_argument("project", help="The project name")
+
+    parser_create = subparsers.add_parser('create', help="Create a new project")
+    parser_create.add_argument("project", help="The project name")
+
+    parser_archive = subparsers.add_parser('archive', help="Archive an existent project")
+    parser_archive.add_argument("project", help="The project name")
 
     args = parser.parse_args()
 
-    sirano = Sirano(args.project)
+    if args.project in args:
+        project = args.project
 
-    if args.phase == 0:
-
-        sirano.pass_through()
-
-    elif args.phase == 1:
-
-        sirano.phase_1()
-
-    elif args.phase == 2:
-
-        sirano.phase_2()
-
-    elif args.phase == 3:
-
-        sirano.phase_3()
-
-    elif args.phase == 4:
-
-        sirano.phase_4()
-
+    if args.action == "process":
+        if not os.path.isdir("projects/" + args.project):
+            parser.error("Project '{}' not exists".format(args.project))
+            exit(1)
+        if args.phase == 0:
+            Sirano.pass_through(project)
+        elif args.phase == 1:
+            Sirano.phase_1(project)
+        elif args.phase == 2:
+            Sirano.phase_2(project)
+        elif args.phase == 3:
+            Sirano.phase_3(project)
+        elif args.phase == 4:
+            Sirano.phase_4(project)
+    elif args.action == "create":
+        Sirano.create(project)
+    elif args.action == "archive":
+        if not os.path.isdir("projects/" + args.project):
+            parser.error("Project '{}' not exists".format(args.project))
+            exit(1)
+        Sirano.archive(project)

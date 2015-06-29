@@ -22,7 +22,7 @@
 import re
 
 from sirano.action import Action
-from sirano.exception import FormatException
+from sirano.exception import UnsupportedFormatException
 
 
 class SDPConnectionAction(Action):
@@ -45,7 +45,7 @@ class SDPConnectionAction(Action):
         m = self.re_sdp_connection.match(value)
 
         if m is None:
-            raise FormatException(self, value)
+            raise UnsupportedFormatException()
 
         ip = m.group('ip_address')
 
@@ -56,7 +56,7 @@ class SDPConnectionAction(Action):
         m = self.re_sdp_connection.match(value)
 
         if m is None:
-            raise FormatException(self, value)
+            raise UnsupportedFormatException()
 
         ip = m.group('ip_address')
 

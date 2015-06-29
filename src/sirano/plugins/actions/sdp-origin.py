@@ -22,7 +22,7 @@
 import re
 
 from sirano.action import Action
-from sirano.exception import FormatException
+from sirano.exception import UnsupportedFormatException
 
 
 class SDPOriginAction(Action):
@@ -65,7 +65,7 @@ class SDPOriginAction(Action):
         m = self.re_sdp_origin.match(value)
 
         if m is None:
-            raise FormatException(self, value)
+            raise UnsupportedFormatException()
 
         ip = m.group('address')
         name = m.group('username')
@@ -74,7 +74,7 @@ class SDPOriginAction(Action):
         if self.data_name.is_valid(name) and self.data_ip.is_valid(ip):
             return ip, name
         else:
-            raise FormatException(self, value)
+            raise UnsupportedFormatException()
 
     def discover(self, value):
 

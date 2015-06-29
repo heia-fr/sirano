@@ -85,13 +85,49 @@ packet:
         len: reset
       other-fields: pass
 
+    IPerror: # IP in ICMP (idem IP)
+      fields:
+        src: ip-address
+        dst: ip-address
+        chksum: reset
+        len: reset
+      other-fields: pass
+
+    ICMP:
+      fields:
+        type: icmp-filter-type
+        gw: ip-address
+        ptr: drop
+        chksum: reset
+      other-fields: pass
+
+    ICMPerror: # ICMP in ICMP (idem ICMP)
+      fields:
+        type: icmp-filter-type
+        gw: ip-address
+        ptr: drop
+        chksum: reset
+      other-fields: pass
+
     UDP:
       fields:
         len: reset
         chksum: reset
       other-fields: pass
 
+    UDPerror: # UDP in ICMP (idem UDP)
+      fields:
+        len: reset
+        chksum: reset
+      other-fields: pass
+
     TCP:
+      fields:
+        len: reset
+        chksum: reset
+      other-fields: pass
+
+    TCPerror: # TCP in ICMP (idem TCP)
       fields:
         len: reset
         chksum: reset
@@ -111,6 +147,20 @@ packet:
       fields:
         src: mac-address
         dst: mac-address
+      other-fields: pass
+
+    DNS: # Do not pass layer to process packet inside field
+      other-fields: pass
+
+    DNSQR:
+      fields:
+        qname: domain-name
+      other-fields: pass
+
+    DNSRR:
+      fields:
+        rrname: domain-name
+        rdata: dns-rdata
       other-fields: pass
 
   text:
@@ -157,3 +207,22 @@ data:
       - internal  # TLD for private LAN RFC 6762
       - localnet  # TLD for private LAN
 
+  name:
+    special-char: [" ", "-", ".", "/", "\\"]
+    exclusion:
+
+  phone:
+    formats:
+        - (\+|00|000)(\d{10,15}) # Complete E.164 numbers
+        - (0|00)(\d{7,10})       # Regionnal numbers
+        - ()(\d{10,15})          # Other numbers
+
+  global:
+    find-exclusion:
+      - 'SIP to tag: (\d{10})'
+      - 'SIP from tag: (\d{10})'
+      - '>;tag=(\d{10})'
+      - 'Call-ID: (\d{8}\-\d{10}-\d{6})'
+      - 'Session ID: (\d+)'
+      - 'Session Version: (\d+)'
+      - 'Owner/Creator, Session Id \(o\): .+ (\d+ \d+) IN IP4'

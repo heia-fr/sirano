@@ -22,7 +22,7 @@
 import re
 
 from sirano.action import Action
-from sirano.exception import FormatException
+from sirano.exception import UnsupportedFormatException
 
 
 class SIPCallIDAction(Action):
@@ -41,7 +41,7 @@ class SIPCallIDAction(Action):
         call_id = self.call_id.match(value)
 
         if call_id is None:
-            raise FormatException(self, value)
+            raise UnsupportedFormatException()
 
         host = call_id.group('host')
 
@@ -53,7 +53,7 @@ class SIPCallIDAction(Action):
         call_id = self.call_id.match(value)
 
         if call_id is None:
-            raise FormatException(self, value)
+            raise UnsupportedFormatException()
 
         host = call_id.group('host')
 

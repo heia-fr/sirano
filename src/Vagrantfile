@@ -7,19 +7,4 @@ Vagrant.configure(2) do |config|
     v.memory = 4096
     v.cpus = 4
   end
-  
-  config.vm.provision "shell", inline: <<-SHELL
-    sudo apt-get update
-    sudo apt-get install python-pip -y
-	sudo apt-get install python-dev -y
-	sudo pip install enum
-	sudo pip install scapy
-	sudo pip install python-magic
-	sudo pip install netaddr
-	sudo pip install tld
-	sudo pip install pysubnettree
-	sudo pip install hexdump
-  SHELL
-end
-
-
+end 

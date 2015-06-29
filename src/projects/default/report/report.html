@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html ng-app="siranoApp">
+<head>
+    <meta charset="UTF-8">
+    <title>Anonymization Report</title>
+    <link rel="stylesheet" href="resources/bower_components/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="resources/bower_components/metisMenu/dist/metisMenu.min.css">
+    <link rel="stylesheet" href="resources/bower_components/startbootstrap-sb-admin-2/dist/css/sb-admin-2.css">
+    <link rel="stylesheet" href="resources/bower_components/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="resources/bower_components/morrisjs/morris.css">
+    <link rel="stylesheet" href="resources/css/sirano.css">
+    <script src="resources/bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="resources/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="resources/bower_components/angular/angular.min.js"></script>
+    <script src="resources/bower_components/angular-smart-table/dist/smart-table.min.js"></script>
+    <script src="resources/bower_components/metisMenu/dist/metisMenu.min.js"></script>
+    <script src="resources/bower_components/raphael/raphael-min.js"></script>
+    <script src="resources/bower_components/morrisjs/morris.min.js"></script>
+    <script src="resources/data/report.js"></script>
+</head>
+<script src="resources/js/sirano.js"></script>
+</head>
+<body ng-controller="siranoCtrl">
+<div class="wrapper">
+    <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#">Sirano v0.2.1 - Anonymisation report</a>
+        </div>
+        <div data-spy="affix">
+            <div class="navbar-default sidebar" role="navigation">
+                <div class="sidebar-nav navbar-collapse">
+
+                    <ul class="nav in" id="side-menu">
+                        <li>
+                            <a class="active" href="#summary"><i class="fa fa-dashboard fa-fw"></i> Summary</a>
+                        </li>
+                        <li>
+                            <a href="#discovery"><i class="fa fa-search fa-fw"></i> Discovery</a>
+                        </li>
+                        <li>
+                            <a href="#generation"><i class="fa fa-cogs fa-fw"></i> Generation</a>
+                        </li>
+                        <li>
+                            <a href="#anonymization"><i class="fa fa-eye-slash fa-fw"></i> Anonymisation</a>
+                        </li>
+                        <li>
+                            <a href="#validation"><i class="fa fa-stethoscope fa-fw  "></i> Validation</a>
+                        </li>
+                        <li>
+                            <a href="#files"><i class="fa fa-files-o fa-fw  "></i> Files</a>
+                        </li>
+                        <li>
+                            <a href="#data"><i class="fa fa-database fa-fw  "></i> Data</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div style="min-height: 544px;" id="page-wrapper">
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">Project 0001</h1>
+
+                <h1 id="summary">Summary</h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-3">
+                <div ng-show="infos" class="panel panel-green">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-check-circle fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div class="huge">{{success}}</div>
+                                <div>Success!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div ng-show="infos" class="panel panel-primary">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-question-circle fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div class="huge">{{infos}}</div>
+                                <div>Infos!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div ng-show="warnings" class="col-lg-3">
+                <div class="panel panel-yellow">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-exclamation-circle fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div class="huge">{{warnings}}</div>
+                                <div>Warnings!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div ng-show="errors" class="col-lg-3">
+                <div class="panel panel-red">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-exclamation-triangle fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div class="huge">{{errors}}</div>
+                                <div>Errors!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Success rate</h3>
+                    </div>
+
+                    <div class="panel-body">
+                        <div id="donut-success" style="height: 300px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 id="summary-files" class="panel-title">Files</h3>
+                    </div>
+                    <table st-table="files" st-safe-src="report.file.files" class="table table-striped table-bordered">
+                        <tr>
+                            <th st-sort="name">Name</th>
+                            <th st-sort="type">Type</th>
+                            <th st-sort="size">Size</th>
+                            <th st-sort="discover_duration">Discover</th>
+                            <th st-sort="anonymize_duration">Anonymize</th>
+                            <th st-sort="validate_duration">Validate</th>
+                        </tr>
+                        <tr ng-repeat="file in files">
+                            <td>{{file.name}}</td>
+                            <td>{{file.type}}</td>
+                            <td align="right">{{file.size}}</td>
+                            <td align="right">{{file.discover_duration}}</td>
+                            <td align="right">{{file.anonymize_duration}}</td>
+                            <td align="right">{{file.validate_duration}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 id="summary-phases" class="panel-title">Phases</h3>
+                    </div>
+                    <table st-table="phases" st-safe-src="report.summary.phases"
+                           class="table table-striped table-bordered">
+                        <tr>
+                            <th st-sort="name">Nom</th>
+                            <th st-sort="start" st-sort-default="true">Start</th>
+                            <th st-sort="end">End</th>
+                            <th st-sort="duration">Duration</th>
+                        </tr>
+                        <tr ng-repeat="phase in phases">
+                            <td>{{phase.name}}</td>
+                            <td>{{phase.start}}</td>
+                            <td>{{phase.end}}</td>
+                            <td align="right">{{phase.duration}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 id="generation-data" class="panel-title">Data</h3>
+                    </div>
+                    <table st-table="stats" st-safe-src="report.data.stats"
+                           class="table table-striped table-bordered">
+                        <tr>
+                            <th st-sort="name">Type</th>
+                            <th st-sort="number">Number</th>
+                        </tr>
+                        <tr ng-repeat="stat in stats">
+                            <td>{{stat.name}}</td>
+                            <td align="right">{{stat.number}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 id="discovery">Discovery</h1>
+
+                <div ng-repeat="(name, report) in [report.packet.discovery]" ng-include src="'packet.html'"></div>
+
+                <div class="panel"
+                     ng-init="incrementCounters(0, 0, 0, getTotal(report.data.data, 'error') + getTotal(report.data.data, 'invalid'))"
+                     ng-class="getTotal(report.data.data, 'error') + getTotal(report.data.data, 'invalid') ? 'panel-danger' : 'panel-default'">
+                    <div class="panel-heading">
+                        <h3 id="discovery-data" class="panel-title">Data</h3>
+                    </div>
+                    <table st-table="data" st-safe-src="report.data.data"
+                           class="table table-striped table-bordered">
+                        <tr>
+                            <th st-sort="name">Type</th>
+                            <th st-sort="discovered">Discovered</th>
+                            <th st-sort="added">Added</th>
+                            <th st-sort="invalid">Invalid</th>
+                            <th st-sort="error">Error</th>
+                        </tr>
+                        <tr ng-repeat="d in data">
+                            <td>{{d.name}}</td>
+                            <td align="right">{{d.discovered}}</td>
+                            <td align="right">{{d.added}}</td>
+                            <td align="right" ng-class="{'danger': d.invalid}">{{d.invalid}}</td>
+                            <td align="right" ng-class="{'danger': d.error}">{{d.error}}</td>
+                        </tr>
+                    </table>
+                </div>
+                <h1 id="generation">Generation</h1>
+
+                <h2>Data Type</h2>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-3" ng-repeat="(name, data) in report.plugins.data">
+                <div class="panel"
+                     ng-init="incrementCounters(0, 0, 0,getTotal(data.processing, 'error'))"
+                     ng-class="getTotal(data.processing, 'error') ? 'panel-danger' : 'panel-default'">
+                    <div class="panel-heading">
+                        <h3 id="generation-ip" class="panel-title">{{name}}</h3>
+
+                    </div>
+                    <table st-table="processing" st-safe-src="data.processing"
+                           class="table table-striped table-bordered">
+                        <tr>
+                            <th st-sort="name">Type</th>
+                            <th st-sort="number">Number</th>
+                            <th st-sort="processed">Processed</th>
+                            <th st-sort="error">Error</th>
+                        </tr>
+                        <tr ng-repeat="d in processing">
+                            <td>{{d.name}}</td>
+                            <td align="right">{{d.number}}</td>
+                            <td align="right">{{d.processed}}</td>
+                            <td align="right" ng-class="{'danger': d.error}">{{d.error}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 id="anonymization">Anonymisation</h1>
+
+                <div ng-repeat="(name, report) in [report.packet.anonymization]" ng-include src="'packet.html'"></div>
+
+                <h1 id="validation">Validation</h1>
+
+                <h1 id="files">Files</h1>
+
+                <div ng-repeat="(name, report) in report.packet.files">
+                    <h2>{{name}}</h2>
+
+                    <div ng-include src="'packet.html'"></div>
+                </div>
+
+                <h1 id="data">Data</h1>
+            </div>
+        </div>
+        <div ng-repeat="(name, data) in report.plugins.data">
+            <div class="row">
+                <h2>{{name}}</h2>
+
+                <div class="col-lg-12">
+                    <div ng-repeat="(values_type, report) in data.values" ng-include src="'values.html'"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/ng-template" id="values.html">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">{{values_type}}</h3>
+        </div>
+        <table st-table="values" st-safe-src="report"
+               class="table table-striped table-bordered">
+            <tr>
+                <th st-sort="value" st-sort-default="true">Value</th>
+                <th st-sort="replacement">Replacement</th>
+            </tr>
+            <tr ng-repeat="value in values">
+                <td>{{value.value}}</td>
+                <td>{{value.replacement}}</td>
+            </tr>
+        </table>
+    </div>
+</script>
+<script type="text/ng-template" id="packet.html">
+    <div class="panel"
+         ng-init="packetId = getUniqueId(); (name == 0) ? incrementCounters(getTotal(report.packets, 'anonymized'), getTotal(report.packets, 'explicit_drop'), getTotal(report.packets, 'implicit_drop'), getTotal(report.packets, 'error')): null"
+         ng-class="getTotal(report.packets, 'error') ? 'panel-danger' : (getTotal(report.packets, 'implicit_drop') ? 'panel-warning' : (getTotal(report.packets, 'explicit_drop') ? 'panel-info' : 'panel-default'))">
+        <div class="panel-heading">
+            <h3 class="panel-title">Packets
+                <button type="button" class="btn btn-default btn-xs pull-right" data-toggle="collapse"
+                        data-target="#packet-packets-help-{{packetId}}">
+                    <span class="glyphicon glyphicon-question-sign"></span> Help
+                </button>
+            </h3>
+            </h3>
+        </div>
+        <div class="collapse panel-body" id="packet-packets-help-{{ packetId }}">
+            <div class="help-block">
+                <p>These are the statistics for all types of packets that have been processed in the
+                    anonymization phase.</p>
+
+                <p>They help to find which type of packet that causes problems during the anonymization</p>
+                <table class="table table-bordered">
+                    <tr>
+                        <th>Layers</th>
+                        <td>The Scapy layer names that composing the packet</td>
+                    </tr>
+                    <tr>
+                        <th>Anonymized</th>
+                        <td>The number of packets that have been anonymized.</td>
+                    </tr>
+                    <tr>
+                        <th>Explicit drop</th>
+                        <td>The number of packets that have been explicitly dropped as indicated in
+                            the configuration file.<br>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Implicit drop</th>
+                        <td>The number of packets that have been dropped due to an unrecognized field or
+                            layer.<br>
+                            It <span class="label label-warning">should</span> have 0 everywhere, to fix
+                            this, the configuration file must be adapted to properly support all layers in
+                            this packet.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Error</th>
+                        <td>
+                            The number of packet that have been dropped due to an unexpected error.<br>
+                            It <span class="label label-danger">must</span> have 0 everywhere.
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <table st-table="packets" st-safe-src="report.packets"
+               class="table table-striped table-bordered">
+            <tr>
+                <th st-sort="name">Packet</th>
+                <th st-sort="anonymized">Anonymized</th>
+                <th st-sort="explicit_drop">Explicit drop</th>
+                <th st-sort="implicit_drop">Implicit drop</th>
+                <th st-sort="error">Error</th>
+            </tr>
+            <tr ng-repeat="packet in packets">
+                <td>{{packet.name}}</td>
+                <td>{{packet.anonymized}}</td>
+                <td ng-class="{'info': packet.explicit_drop}">{{packet.explicit_drop}}</td>
+                <td ng-class="{'warning': packet.implicit_drop}">{{packet.implicit_drop}}</td>
+                <td ng-class="{'danger': packet.error}">{{packet.error}}</td>
+            </tr>
+        </table>
+    </div>
+    <div class="panel"
+         ng-class="getTotal(report.layers, 'error') ? 'panel-danger' : (getTotal(report.layers, 'implicit_drop') ? 'panel-warning' : (getTotal(report.layers, 'explicit_drop') ? 'panel-info' : 'panel-default'))">
+        <div class="panel-heading">
+            <h3 class="panel-title">Layers
+                <button type="button" class="btn btn-default btn-xs pull-right"
+                        data-toggle="collapse"
+                        data-target="#packet-layers-help-{{packetId}}">
+                    <span class="glyphicon glyphicon-question-sign"></span> Help
+                </button>
+            </h3>
+        </div>
+        <div class="collapse panel-body" id="packet-layers-help-{{packetId}}">
+            <div class="help-block">
+                <p>These are the statistics for all layers that have been processed in the anonymization
+                    phase even if the packet has been removed in a layer of the highest level, this means
+                    that if a packet is dropped before reaching a layer, this one is not counted.</p>
+
+                <p>They help to find the layer which causes problems during the anonymization</p>
+                <table class="table table-bordered">
+                    <tr>
+                        <th>Name</th>
+                        <td>The Scapy layer name</td>
+                    </tr>
+                    <tr>
+                        <th>Pass</th>
+                        <td>The number of layers that have not been anonymized because they are not
+                            sensitive.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Anonymized</th>
+                        <td>The number of layers that have been anonymized.</td>
+                    </tr>
+                    <tr>
+                        <th>Explicit drop</th>
+                        <td>The number of layers that have been explicitly dropped as indicated in
+                            the
+                            configuration file.<br>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Implicit drop</th>
+                        <td>The number of layers that have been dropped due to an unrecognized
+                            field.<br>
+                            It <span class="label label-warning">should</span> have 0 everywhere. To fix
+                            this, the configuration file must be adapted to properly support all fields in
+                            this layer.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Error</th>
+                        <td>
+                            The number of layers that have been dropped due to an unexpected error.<br>
+                            It <span class="label label-danger">must</span> have 0 everywhere.
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <table st-table="layers" st-safe-src="report.layers"
+               class="table table-striped table-bordered">
+            <tr>
+                <th st-sort="name">Name</th>
+                <th st-sort="pass">Pass</th>
+                <th st-sort="anonymized">Anonymized</th>
+                <th st-sort="explicit_drop">Explicit drop</th>
+                <th st-sort="implicit_drop">Implicit drop</th>
+                <th st-sort="error">Error</th>
+            </tr>
+            <tr ng-repeat="layer in layers">
+                <td>{{layer.name}}</td>
+                <td>{{layer.pass}}</td>
+                <td>{{layer.anonymized}}</td>
+                <td ng-class="{'info': layer.explicit_drop}">{{layer.explicit_drop}}</td>
+                <td ng-class="{'warning': layer.implicit_drop}">{{layer.implicit_drop}}</td>
+                <td ng-class="{'danger': layer.error}">{{layer.error || "0"}}</td>
+            </tr>
+        </table>
+    </div>
+</script>
+</body>
+</html>

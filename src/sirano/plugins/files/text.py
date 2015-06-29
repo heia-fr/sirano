@@ -22,7 +22,7 @@
 from collections import Counter
 import os.path
 import binascii
-from hexdump import restore, hexdump
+from hexdump import restore
 
 import magic
 import re
@@ -38,8 +38,8 @@ class TextFile(File):
     re_hexdump = re.compile(r"([a-f0-9]+:?(?:\s+(?:[a-f0-9]{2})?){16}\s+.{16})", re.IGNORECASE)
     """The regular expression to find hexdump line"""
 
-    def __init__(self, app, file):
-        super(TextFile, self).__init__(app, file)
+    def __init__(self, app, a_file):
+        super(TextFile, self).__init__(app, a_file)
         self.app.log.info("Filetype 'text' initialized")
 
         self.hexdump = False
@@ -51,11 +51,11 @@ class TextFile(File):
 
         path = os.path.join(self.app.project.input, self.file)
 
-        with open(path) as file:
+        with open(path) as a_file:
 
             counter = Counter()
 
-            for line in file:
+            for line in a_file:
                 words = re_word.split(line)
 
                 for word in words:
@@ -73,17 +73,17 @@ class TextFile(File):
 
         action = self.app.manager.action.get_action('auto')
 
-        file = os.path.join(self.app.project.input, self.file)
+        a_file = os.path.join(self.app.project.input, self.file)
 
-        with open(file, 'r') as f:
+        with open(a_file, 'r') as f:
             for line in f:
-                action.discover(line)
+                if self.re_hexdump.search(line) is None:
+                    action.discover(line)
 
-    def __replace(self, dir_out):
+    def __replace(self, file_out):
         action = self.app.manager.action.get_action('auto')
 
         file_in = os.path.join(self.app.project.input, self.file)
-        file_out = os.path.join(dir_out, self.file)
 
         with open(file_in, 'r') as f_in:
             with open(file_out, 'w') as f_out:
@@ -98,10 +98,14 @@ class TextFile(File):
 
 
     def anonymize(self):
-        self.__replace(self.app.project.output)
+        self.__replace(os.path.join(self.app.project.output, self.file))
 
     def validate(self):
-        self.__replace(self.app.project.validation)
+        root, ext = os.path.splitext(self.file)
+        filename = root + '.clean' + ext
+        self.app.manager.data.clean_mode = True
+        self.__replace(os.path.join(self.app.project.output, filename))
+        self.app.manager.data.clean_mode = False
 
     @classmethod
     def is_compatible(cls, path):
@@ -147,8 +151,8 @@ class TextFile(File):
         :return: True if the file contain some hexdump, False otherwise
         :rtype True | False
         """
-        with open(path) as file:
-            for line in file:
+        with open(path) as a_file:
+            for line in a_file:
                 line = line.replace('\r', '') # Compatibility with windows file
                 match = self.re_hexdump.match(line)
                 if match: # is not None
@@ -157,15 +161,15 @@ class TextFile(File):
         return False
 
     @staticmethod
-    def __hexdump_to_packet(hexdump):
+    def __hexdump_to_packet(a_hexdump):
         """
         Tranformt a hexdump to a packet if is it valid
-        :param hexdump: The hexdump
-        :type str
+        :param a_hexdump: The hexdump
+        :type a_hexdump: str
         :return: The scapy Packet or None if the packet is not valid
         :rtype Packet | None
         """
-        raw = restore(hexdump)
+        raw = restore(a_hexdump)
 
         if raw.startswith(binascii.unhexlify('0004')):
             return IP(raw)

@@ -1,26 +1,8 @@
 # -*- coding: utf-8 -*-
 #
-# This file is a part of Sirano.
-#
-# Copyright (C) 2015  HES-SO // HEIA-FR
-# Copyright (C) 2015  Loic Gremaud <loic.gremaud@grelinfo.ch>
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+# Copyright 2015 Loic Gremaud <loic.gremaud@grelinfo.ch>
 
 from scapy.layers.all import *
-
 from sirano.plugins.layers.sip import *
 from sirano.manager import Manager
 
@@ -35,7 +17,7 @@ class LayerManager(Manager):
 
     def __init__(self, app):
         Manager.__init__(self, app)
-        self.yml = self.app.conf.get('layer', dict())
+        self.yml = self.app.conf.setdefault('layer', dict())
 
     def configure(self):
         self.app.log.debug("manager:layer: Configured")
@@ -61,7 +43,7 @@ class LayerManager(Manager):
     def __bind_layers(self):
         """Call the Scapy bind_layers function with  all entry in the configuration"""
 
-        yml_conf = self.yml.get('bind-layers', list())
+        yml_conf = self.yml.setdefault('bind-layers', list())
 
         for elt in yml_conf:
             if "lower" in elt and "upper" in elt:

@@ -32,8 +32,19 @@ class MacData(Data):
 
     name = 'mac'
 
-    re_mac = re.compile(r"^([0-9a-fA-F]{2}[:\.-]?){5}[0-9a-fA-F]{2}$")
-    """The regular expression for a mac address"""
+    re_mac_find = re.compile(r"((?:[0-9a-fA-F]{2}[:\.-]?){5}[0-9a-fA-F]{2})", re.IGNORECASE)
+    """Simple regegular expression to find MAC addresses"""
+
+    re_mac = re.compile(r"^((?:(?:(?:[0-9A-F]{2}[:-]){5}[0-9A-F]{2})|(?:(?:[0-9A-F]{4}\.){2}[0-9A-F]{4})))$", re.IGNORECASE)
+    """
+    The regular expression for a MAC addresses
+
+    Supported format:
+    -----------------
+    01-23-45-67-89-ab
+    01:23:45:67:89:ab
+    0123.4567.89ab
+    """
 
     def __init__(self, app):
         super(MacData, self).__init__(app)
@@ -45,9 +56,7 @@ class MacData(Data):
 
         self.macs = self.link_data('macs', dict)
 
-
-
-        for k, v in self.macs.iteritems():
+        for k, v in self.macs.items():
 
             old_k = k
             k = k.lower()
@@ -65,7 +74,9 @@ class MacData(Data):
             del self.macs[old_k]
             self.macs[k] = v
 
-
+    def pre_save(self):
+        for value, replacement in self.macs.items():
+            self.data_report_value('mac' ,value, replacement)
 
     @staticmethod
     def __oui(eui):
@@ -77,30 +88,34 @@ class MacData(Data):
 
     def process(self):
 
-        for k, v in self.macs.iteritems():
-
+        for k, v in self.macs.items():
+            self.data_report_processed('mac', 'number')
             if v is None:
-                self.macs[k] = None
+                try:
+                    self.macs[k] = None
 
-                print k
-                print k
-                n = netaddr.EUI(k)
-                oui = self.__oui(n)
+                    n = netaddr.EUI(k)
+                    oui = self.__oui(n)
 
-                r = "{}-{:02X}-{:02X}-{:02X}".format(oui,
-                                                     random.randint(0x00, 0x7f),
-                                                     random.randint(0x00, 0xff),
-                                                     random.randint(0x00, 0xff))
-                self.macs[k] = r.replace('-', ':').lower()
+                    r = "{}-{:02X}-{:02X}-{:02X}".format(oui,
+                                                         random.randint(0x00, 0x7f),
+                                                         random.randint(0x00, 0xff),
+                                                         random.randint(0x00, 0xff))
+                    self.macs[k] = r.replace('-', ':').lower()
+                    self.data_report_processed('mac', 'processed')
+                except Exception as e:
+                    self.data_report_processed('mac', 'error')
+                    self.app.log.error("sirano:data:mac: Fail to generate a replacement value, mac='{}',"
+                                       "exception='{}', message='{}'".format(k, type(e), e.message))
+                    raise
 
-    def clear(self):
-        for k in self.macs.iterkeys():
-            self.macs[k] = ''
+    def _add_value(self, value):
+        if value not in self.macs:
+            self.macs[value] = None
+            return True
+        return False
 
-    def add_value(self, value):
-        self.macs[value] = self.macs.get(value, None)
-
-    def get_replacement(self, value):
+    def _get_replacement(self, value):
 
         r = self.macs.get(value, None)
 
@@ -117,6 +132,23 @@ class MacData(Data):
 
         valid =  self.re_mac.match(value) is not None
         return valid
+
+    def get_number_of_values(self):
+        return len(self.macs)
+
+    def has_replacement(self, replacement):
+        return replacement in self.macs.values()
+
+    def has_value(self, value):
+        return self.macs.has_key(value)
+
+    def __getattribute__(self, name):
+        return super(MacData, self).__getattribute__(name)
+
+    def _find_values(self, string):
+        founds = self.re_mac_find.findall(string)
+        values = filter(lambda v: self.is_valid(v), founds)
+        return values
 
     class MacAddress(object):
 

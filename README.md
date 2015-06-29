@@ -9,7 +9,7 @@ This version is for testing purposes.
 ### Supported file types
 
 * Pcap packet-capture
-* Text log file <sup>[new]</sup>
+* Text log file
 
 ### Supported protocols
 
@@ -17,11 +17,11 @@ This version is for testing purposes.
 * IP
 * TCP
 * UDP
-* ARP <sup>[new]</sup>
+* ARP
 * SIP
 * SDP
-* DNS <sup>[coming soon]</sup>
-* ICMP <sup>[coming soon]</sup>
+* DNS <sup>[new]</sup>
+* ICMP <sup>[new]</sup>
 
 ### Supported data types
 
@@ -60,8 +60,18 @@ sudo pip install hexdump
 
 From the src folder :
 
+### Create a new project
+
 ```
-python sirano.py <project> <phase>
+python sirano.py create <project> 
+```
+
+* `project` : The name of the project folder to use
+
+### Process a project
+
+```
+python sirano.py process <phase> <project> 
 ```
 
 * `project` : The name of the project folder to use
@@ -71,5 +81,16 @@ python sirano.py <project> <phase>
   * `2` : The generation phase
   * `3` : The anonymisation phase
   * `4` : The validation phase
+  
+ 
+### Archive an existent project
 
-User documentation is coming soon...
+```
+python sirano.py archive <project> 
+```
+
+* `project` : The name of the project folder to use
+
+### User documentation
+
+The user documentation is in wiki at https://github.com/heia-fr/sirano/wiki

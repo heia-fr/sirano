@@ -65,7 +65,7 @@ class SDP(Packet):
                 if not isinstance(val, list):
                     val = [val]
 
-                for i in xrange(len(val)):
+                for i in range(len(val)):
                     [v, l] = field[i]
 
                     l = l.replace(v, val[i])
@@ -103,7 +103,7 @@ class SDP(Packet):
 
         lines = s.splitlines(True)
 
-        for _ in xrange(len(lines)):
+        for _ in range(len(lines)):
             line = lines.pop(0)
 
             desc = self.re_desc.match(line)
@@ -178,7 +178,7 @@ class SIPHeader(Packet):
                 if not isinstance(val, list):
                     val = [val]
 
-                for i in xrange(len(val)):
+                for i in range(len(val)):
                     [v, l] = field[i]
 
                     l = l.replace(v, val[i])
@@ -218,7 +218,7 @@ class SIPHeader(Packet):
 
         lines = s.splitlines(True)
 
-        for _ in xrange(len(lines)):
+        for _ in range(len(lines)):
             line = lines.pop(0)
 
             if line == '\r\n':
