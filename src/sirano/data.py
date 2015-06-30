@@ -316,7 +316,7 @@ class Data(AppBase):
 
         self.app.log.debug('data:{}:save()'.format(self.name))
 
-        with file(self.path, 'w') as f:
+        with open(self.path, 'w') as f:
             yaml.dump(dict(self.data), f, default_flow_style=False)
 
         self.app.log.debug("data:{}: Data saved: File \"{}\"".format(self.name, self.path))
@@ -506,12 +506,13 @@ class Data(AppBase):
         data.append({'value': value, 'replacement': replacement})
 
     def __data_report_reset(self):
-        # Processing
-        data = self.report.setdefault('processing', list())
-        for d in data:
-            d['number'] = 0
-            d['error'] = 0
-            # processed should not be reseated
+        if self.app.phase == 2:
+            # Processing
+            data = self.report.setdefault('processing', list())
+            for d in data:
+                d['number'] = 0
+                d['error'] = 0
+                # processed should not be reseated
 
-        # Values
-        self.report['values'] = dict()
+            # Values
+            self.report['values'] = dict()

@@ -29,21 +29,19 @@ siranoApp.controller('siranoCtrl', function ($scope, $http, $filter) {
         $scope.warnings += warnings;
         $scope.errors += errors;
         $scope.infos += infos;
-        $scope.success += success
-
-
-        $scope.updateDonutSuccess()
+        $scope.success += success;
+        $scope.updateDonutUsability()
     };
 
-    $scope.donut_success = Morris.Donut({
-        element: 'donut-success',
+    $scope.donut_usability = Morris.Donut({
+        element: 'donut-usability',
         colors: ['#5CB85C',
             '#337AB7',
             '#F0AD4E',
             '#D9534F'
         ],
         formatter: function (y, data) {
-            return y + '%'
+            return data.data + '%'
         },
         data: [
             {label: "Success", value: 0},
@@ -53,30 +51,24 @@ siranoApp.controller('siranoCtrl', function ($scope, $http, $filter) {
         ]
     });
 
-    $scope.updateDonutSuccess = function () {
-        total = 1 * $scope.success + 0.1 * $scope.infos + 100 * $scope.warnings;
+    $scope.updateDonutUsability = function () {
+        total = $scope.success + $scope.infos + $scope.warnings;
         success = Math.round($scope.success / total * 100);
-        infos = Math.round(0.1 * $scope.infos / total * 100);
-        warnings = Math.round(100 * $scope.warnings / total * 100);
+        infos = Math.round($scope.infos / total * 100);
+        warnings = Math.round($scope.warnings / total * 100);
 
         if ($scope.errors) {
-            errors = 100;
-            success = 0;
-            infos = 0;
-            warings = 0;
-
-            $scope.donut_success.setData([
+            $scope.donut_usability.setData([
                 {label: 'Anonymization failed', value: 0},
                 {label: 'Anonymization failed', value: 0},
                 {label: 'Anonymization failed', value: 0},
-                {label: "Anonymization failed", value: errors}
+                {label: "Anonymization failed", value: 100}
             ]);
         } else {
-
-            $scope.donut_success.setData([
-                {label: "Success", value: success},
-                {label: "Infos", value: infos},
-                {label: "Warnings", value: warnings}
+            $scope.donut_usability.setData([
+                {label: "Usability", value: success, data: success},
+                {label: "Usability", value: infos, data: success},
+                {label: "Usability", value: warnings, data: success}
             ]);
         }
     }

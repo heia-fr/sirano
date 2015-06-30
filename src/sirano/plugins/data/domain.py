@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-from sirano.utils import word_generator
+from sirano.utils import word_generator, word_generate
 
 import re
 
@@ -54,22 +54,39 @@ class DomainData(Data):
         :type: list[str]
         """
 
+        self.exclusion = set()
+        """
+        Domain to not anonymize
+        :type: set[str]
+        """
+
+        self.special_char = list()
+        """
+        Char to preserve during anonymization
+        :type: list[str]
+        """
+
     def post_load(self):
         self.domains = self.link_data('domains', dict)
+        self.post_load_exclusion()
+        self.post_load_special_char()
 
     def process(self):
         for domain, replacement in self.domains.items():
             self.data_report_processed('domain', 'number')
             if replacement is None:
-                try:
-                    self.__process_domain(domain)
-                    self.data_report_processed('domain', 'processed')
-                except Exception as e:
-                    self.data_report_processed('domain', 'error')
-                    self.app.log.error("data:domain: Fail to process domain='{}', exception='{}', message='{}'".format(
-                        domain, type(e), e.message
-                    ))
-                    raise
+                if domain in self.exclusion:
+                    self.domains[domain] = domain
+                else:
+                    try:
+                        self.__process_domain(domain)
+                    except Exception as e:
+                        self.data_report_processed('domain', 'error')
+                        self.app.log.error("data:domain: Fail to process domain='{}', exception='{}', message='{}'".format(
+                            domain, type(e), e.message
+                        ))
+                        raise
+                self.data_report_processed('domain', 'processed')
 
     def is_valid(self, value):
 
@@ -157,7 +174,7 @@ class DomainData(Data):
             if replacement is not None:
                 replacement_level = replacement
             else:
-                for replacement_label in word_generator(len(label)):
+                for replacement_label in self.__generate_random_label(label):
                     if index != 0:
                         replacement_level = '{}.{}'.format(replacement_label, replacement_level)
                     else:
@@ -166,3 +183,47 @@ class DomainData(Data):
                     if replacement_level not in self.domains.keys():
                         break
                 self.domains[domain_level] = replacement_level
+
+    def post_load_exclusion(self):
+        """
+        Called by post_load() to load internal representation of exception
+        """
+        exception = self.conf.get('exclusion')
+        if isinstance(exception, list):
+            for domain in exception:
+                self.exclusion.add(domain)
+
+    def __generate_random_label(self, label):
+        """
+        Generate random label and preserve the special char at same position
+        :param label: The label
+        :type label: str
+        :return: The anonmyized label
+        :rtype: list[str]
+        """
+        while True:
+            new_label = label
+            label_split = self.__split_label(label)
+            for sublabel in label_split:
+                new_label = new_label.replace(sublabel, word_generate(len(sublabel)))
+            yield new_label
+
+    def __split_label(self, label):
+        """
+        Split a name based on special char
+        :param label: The name
+        :type label: str
+        :return: The list of name
+        :type: list[str]
+        """
+        regex = '|'.join(map(re.escape, self.special_char))
+        return re.split(regex, label)
+
+    def post_load_special_char(self):
+        """
+        Called by post_load() to load internal representation of special_char
+        """
+        special_char = self.conf.get('special-char')
+        if isinstance(special_char, list):
+            for sc in special_char:
+                self.special_char.append(sc)

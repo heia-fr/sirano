@@ -125,12 +125,10 @@ class PCAPFile(File):
             drop_path = os.path.join(self.app.project.trash, name)
 
             # Remove files before append
-
             try:
                 os.remove(out_path)
             except OSError:
                 pass
-
             try:
                 os.remove(drop_path)
             except OSError:
@@ -195,21 +193,22 @@ class PCAPFile(File):
     def __validate_check_tshark(self):
         values = defaultdict(list)
         with open(self.validation_file_tshark) as a_file:
-            for line in a_file:
+            for line_number, line in enumerate(a_file):
                 values_line = self.app.manager.data.find_values_all(line)
                 for data, value in values_line.items():
+                    value = map(lambda x: (line_number, x), value)
                     values[data].extend(value)
 
         values = dict(map(lambda (k, v): (k, set(v)), values.items()))
 
         for data_name, set_of_values in values.items():
             data = self.app.manager.data.get_data(data_name)
-            for value in set_of_values:
+            for line_number, value in set_of_values:
                 if not data.has_replacement(value):
+                    lines = []
                     self.app.log.error(
-                        "sirano:file:pcap: Validation error value is not replaced, data = '{}', value = '{}'".format(
-                            data_name, value))
-
+                        "sirano:file:pcap: Validation error value is not replaced, files = '{}', line = '{}', "
+                        "data = '{}', value = '{}'".format(self.file, line_number, data_name, value))
 
 # noinspection PyClassicStyleClass
 class SiranoPcapWriter(PcapWriter):

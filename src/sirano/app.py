@@ -22,6 +22,7 @@ from sirano.packet import PacketAnonymizer
 from sirano.utils import makedirs, AppBase
 from datadiff import diff
 
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 class Phase(Enum):
     phase_1 = 1
@@ -204,13 +205,14 @@ class App(object):
         self.__load_log()
         self.__load_conf()
         self.project.load()
-        self.report = self.__load_report()
+        self.__load_report()
         self.manager = AppManager(self)
         self.manager.configure_all()
         self.manager.data.load_all()
         self.packet = PacketAnonymizer(self)
 
     def save_report(self):
+        self.report['project_name'] = self.project_name
         with open(os.path.join(self.project.report, 'report.json'), 'w+') as a_file:
             json.dump(self.report, a_file, indent=4)
         with open(os.path.join(self.project.report, 'resources/data/report.js'), 'w+') as a_file:
@@ -248,8 +250,9 @@ class App(object):
             with open(os.path.join(self.project.report, 'report.json')) as f:
                 report = json.load(f)
         except Exception as e:
-            self.app.log.debug(e)
-        return report
+            self.log.debug(e)
+        self.report = report
+
 
     def __load_log(self):
         """
@@ -323,8 +326,8 @@ class App(object):
         Load the YAML configuration
         """
         self.log.info("app: Load config: Filetype \"%s\"", self.project.config)
-        current = yaml.load(file(self.project.config))
-        default = yaml.load(file(self.default.config))
+        current = yaml.load(open(self.project.config))
+        default = yaml.load(open(self.default.config))
         self.__create_conf_diff(current, default)
         self.conf =  current
 

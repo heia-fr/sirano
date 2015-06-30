@@ -163,15 +163,11 @@ packet:
         rdata: dns-rdata
       other-fields: pass
 
-  text:
-    priority: 1
-
 data:
   ip:
     blocks:
       - 0.0.0.0/1          # Class A network RFC 791
       - 0.0.0.0/8          # Current network RFC 6890
-      - 0.0.0.0/24         # Do not anonymize 0.0.0.0
       - 10.0.0.0/8         # Private network RFC 1918
       - 100.64.0.0/10      # Shared Address Space RFC 6598
       - 127.0.0.0/8        # Loopback RFC 6890
@@ -189,8 +185,11 @@ data:
       - 224.0.0.0/4        # IP multicast (former Class D network) RFC 5771
       - 240.0.0.0/4        # Reserved (former Class E network) RFC 1700
       - 255.255.255.255/8  # Broadcast RFC 919
+    exclusion:
+      - 0.0.0.0
 
   domain:
+    special-char: ["-", "_"]
     # Additional Top Level Domains
     tlds:
       - test      # TLD for testing RFC 2606
@@ -206,16 +205,26 @@ data:
       - private   # TLD for private LAN RFC 6762
       - internal  # TLD for private LAN RFC 6762
       - localnet  # TLD for private LAN
+    exclusion:
+      - invalid.net
 
   name:
-    special-char: [" ", "-", ".", "/", "\\"]
+    special-char: [" ", "-", ".", "/", "\\", "_"]
     exclusion:
+      - unknown
+      - anonymous
 
   phone:
+    digit-preserved: 3
     formats:
-        - (\+|00|000)(\d{10,15}) # Complete E.164 numbers
-        - (0|00)(\d{7,10})       # Regionnal numbers
+        - (\+|000|00)(\d{10,15}) # Complete E.164 numbers
+        - (00|0)(\d{7,10})       # Regionnal numbers
         - ()(\d{10,15})          # Other numbers
+    exclusion:
+
+  mac:
+    exclusion:
+      - ff:ff:ff:ff:ff:ff
 
   global:
     find-exclusion:
@@ -226,3 +235,5 @@ data:
       - 'Session ID: (\d+)'
       - 'Session Version: (\d+)'
       - 'Owner/Creator, Session Id \(o\): .+ (\d+ \d+) IN IP4'
+      - 'User-Agent: Nortel SESM (\d{1,2}(?:\.\d{1,2}){3})'
+      - 'CSeq: (\d{5})'

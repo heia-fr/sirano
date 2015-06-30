@@ -42,9 +42,8 @@ class Sirano:
         Discovery phase
         """
         app = App(project_name)
-        app.load()
-
         app.phase = Phase.phase_1
+        app.load()
         app.manager.file.add_files()
         app.manager.file.discover_all()
         app.manager.data.save_all()
@@ -57,9 +56,8 @@ class Sirano:
         Generation phase
         """
         app = App(project_name)
-        app.load()
-
         app.phase = Phase.phase_2
+        app.load()
         app.manager.data.process_all()
         app.manager.data.save_all()
         app.log.info("Phase 2: generation complete")
@@ -71,9 +69,8 @@ class Sirano:
         Anonymization phase
         """
         app = App(project_name)
-        app.load()
-
         app.phase = Phase.phase_3
+        app.load()
         app.manager.file.add_files()
         app.manager.file.anonymize_all()
         app.log.info("Phase 3: anonymization complete")
@@ -85,9 +82,8 @@ class Sirano:
         Validation phase
         """
         app = App(project_name)
-        app.load()
-
         app.phase = Phase.phase_4
+        app.load()
         app.manager.file.add_files()
         app.manager.file.validate_all()
         app.log.info("Phase 4: validation complete")
@@ -98,30 +94,10 @@ class Sirano:
         """
         Pass through all phases
         """
-        app = App(project_name)
-        app.load()
-
-        app.log.info("Pass throught start")
-        app.phase = Phase.phase_1
-        app.manager.file.add_files()
-        app.manager.file.discover_all()
-        app.manager.data.save_all()
-        app.log.info("Phase 1: discovery complete")
-
-        app.phase = Phase.phase_2
-        app.manager.data.process_all()
-        app.manager.data.save_all()
-        app.log.info("Phase 2: generation complete")
-
-        app.phase = Phase.phase_3
-        app.manager.file.anonymize_all()
-        app.log.info("Phase 3: anonymization complete")
-
-        app.phase = Phase.phase_4
-        app.manager.file.validate_all()
-        app.log.info("Phase 4: validation complete")
-
-        app.save_report()
+        Sirano.phase_1(project_name)
+        Sirano.phase_2(project_name)
+        Sirano.phase_3(project_name)
+        Sirano.phase_4(project_name)
 
     @staticmethod
     def create(project_name):

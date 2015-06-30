@@ -59,9 +59,16 @@ class IPData(Data):
         :type list[IPNetwork]
         """
 
+        self.exclusion = set()
+        """
+        IP addresses to not anonymize
+        :type: set[str]
+        """
+
     def post_load(self):
         self.hosts = self.link_data('hosts', dict)
         self.subnets = self.__get_subnets()
+        self.__post_load_exclusion()
 
     def pre_save(self):
         self.__pre_save_hosts()
@@ -167,15 +174,18 @@ class IPData(Data):
         for host, replacement in self.hosts.items():
             self.data_report_processed('host', 'number')
             if replacement is None or replacement == 'None': # is None
-                try:
-                    replacement = self.__anonymize_host(IPAddress(host))
-                    self.hosts[host] = str(replacement)
-                    self.data_report_processed('host', 'processed')
-                except Exception as e:
-                    self.data_report_processed('host', 'error')
-                    self.app.log.error("sirano:data:ip: Fail to generate a replacement value, host='{}', host='{}', "
-                                       "exception='{}', message='{}'".format(host, type(e), e.message))
-                    raise
+                if host in self.exclusion:
+                    self.hosts[host] = host
+                else:
+                    try:
+                        replacement = self.__anonymize_host(IPAddress(host))
+                        self.hosts[host] = str(replacement)
+                    except Exception as e:
+                        self.data_report_processed('host', 'error')
+                        self.app.log.error("sirano:data:ip: Fail to generate a replacement value, host='{}', host='{}', "
+                                           "exception='{}', message='{}'".format(host, type(e), e.message))
+                        raise
+                self.data_report_processed('host', 'processed')
 
     def __get_blocks(self):
         """
@@ -321,8 +331,10 @@ class IPData(Data):
         """
         Creates subnet with prefix /24 for IP that not match with an existent one
         """
-
         for host in self.hosts:
+            if host in self.exclusion:
+                continue
+
             host = IPAddress(host)
 
             if self.__is_subnet_exists(host):
@@ -420,6 +432,15 @@ class IPData(Data):
     def __pre_save_hosts(self):
         for value, replacement in self.hosts.items():
             self.data_report_value('host' ,value, replacement)
+
+    def __post_load_exclusion(self):
+        """
+        Called by post_load() to load internal representation of exception
+        """
+        exception = self.conf.get('exclusion')
+        if isinstance(exception, list):
+            for ip in exception:
+                self.exclusion.add(ip)
 
 
 

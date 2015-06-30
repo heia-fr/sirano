@@ -114,3 +114,16 @@ def find_one_dict_by_key(list_of_dict, key, value, create=False):
         list_of_dict.append(a_dict)
         return a_dict
     return None
+
+def force_setdefault(a_dict, key, default):
+    """
+    Same as setdefault for dictionnary but if value is None it set the default too
+    :param a_dict: The dictionnary
+    :type: dict
+    :param key: The key
+    :param default: The default value, must be not None
+    :return: The reference to the value
+    """
+    if a_dict.get(key) is None:
+        a_dict[key] = default
+    return a_dict[key]

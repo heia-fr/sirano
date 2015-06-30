@@ -49,6 +49,12 @@ class NameData(Data):
         :type: list[str]
         """
 
+        self.exclusion = set()
+        """
+        Name to not anonymize
+        :type: set[str]
+        """
+
     def _add_value(self, value):
         value = value.lower()
         if value not in self.names:
@@ -60,19 +66,23 @@ class NameData(Data):
         for name, replacement in self.names.items():
             self.data_report_processed('name', 'number')
             if replacement is None:
-                try:
-                    replacement = self.__generate_name(name)
-                    self.names[name] = replacement
-                    self.data_report_processed('name', 'processed')
-                except Exception as e:
-                    self.data_report_processed('name', 'error')
-                    self.app.log.error("sirano:data:name: Fail to generation a replacement value, name='{}',"
-                                       "exception='{}', message='{}'".format(name, type(e), e.message))
-                    raise
+                if name in self.exclusion:
+                    self.names[name] = name
+                else:
+                    try:
+                        replacement = self.__generate_name(name)
+                        self.names[name] = replacement
+                    except Exception as e:
+                        self.data_report_processed('name', 'error')
+                        self.app.log.error("sirano:data:name: Fail to generation a replacement value, name='{}',"
+                                           "exception='{}', message='{}'".format(name, type(e), e.message))
+                        raise
+                self.data_report_processed('name', 'processed')
 
     def post_load(self):
         self.names = self.link_data('names', dict)
         self.special_char = self.conf.get('special-char', list())
+        self.__post_load_exclusion()
 
     def _get_replacement(self, value):
         value = value.lower()
@@ -137,8 +147,6 @@ class NameData(Data):
         :rtype: list[str]
         """
         name_split = self.__split_name(name)
-
-
         while True:
             replacement = name
             for subname in name_split:
@@ -147,3 +155,12 @@ class NameData(Data):
 
             if replacement not in self.names.keys():
                 return replacement
+
+    def __post_load_exclusion(self):
+        """
+        Called by post_load() to load internal representation of exception
+        """
+        exception = self.conf.get('exclusion')
+        if isinstance(exception, list):
+            for name in exception:
+                self.exclusion.add(name)

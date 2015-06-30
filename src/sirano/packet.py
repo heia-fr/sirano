@@ -46,7 +46,7 @@ class PacketAnonymizer(AppBase):
 
         self.layers = self.__layers()
 
-        self.__report_reset()
+        self.reset()
 
         self.current_packet = None
         """
@@ -238,21 +238,32 @@ class PacketAnonymizer(AppBase):
                 layers.append(entry)
             entry[a_property] += 1
 
+    def reset(self):
+        """
+        Reset between phase
+        """
+        self.__report_reset()
+
     def __report_reset(self):
         """
         Reset the report
         """
-        a_global = self.report.setdefault('global', dict())
-        files = self.report.setdefault('files', dict())
+        if self.app.phase == 1:
+            a_global = self.report.setdefault('discovery', dict())
+        elif self.app.phase == 3:
+            a_global = self.report.setdefault('anonymization', dict())
+            files = self.report.setdefault('files', dict())
+            for a_file in files.values():
+                a_file['packets'] = list()
+                a_file['layers'] = list()
+        elif self.app.phase == 4:
+            a_global = self.report.setdefault('validation', dict())
+        else:
+            a_global = dict()
         """:type: dict[str, object]"""
-
         a_global['packets'] = list()
         a_global['layers'] = list()
 
-
-        for a_file in files.values():
-            a_file['packets'] = list()
-            a_file['layers'] = list()
 
     def __get_packet_layers(self, packet):
         """

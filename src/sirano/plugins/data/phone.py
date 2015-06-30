@@ -20,7 +20,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 from collections import OrderedDict
 
-from random import randint
+from random import randint, shuffle
 import re
 
 from sirano.data import Data
@@ -41,7 +41,7 @@ class PhoneData(Data):
     def __init__(self, app):
         super(PhoneData, self).__init__(app)
 
-        self.formats = None
+        self.formats = list()
         """
         Number formats in regular expression
         :type: list(str)
@@ -49,14 +49,27 @@ class PhoneData(Data):
 
         self.codes = dict()
         """
-        Code with replacement values separated by number length
-        :type: dict[int, dict[str, str]]
+        Code with replacement code
+        Must be ordered by length with an OrderedDict (longest before)
+        :type: dict[str, str]
         """
 
-        self.numbers = None
+        self.numbers = dict()
         """
         Number with replacement values
         :type: dict[str, str]
+        """
+
+        self.digit_preserved = 3
+        """
+        Number of preserved digit by default
+        :type: int
+        """
+
+        self.exclusion = set()
+        """
+        Number to not anonymize
+        :type: set[str]
         """
 
     def _get_replacement(self, value):
@@ -73,23 +86,15 @@ class PhoneData(Data):
         return None
 
     def post_load(self, ordereddict=None):
-        self.numbers = self.link_data('numbers', dict)
+        self.digit_preserved = self.conf.get('digit-preserved', self.digit_preserved)
+        self.__post_load_exclusion()
+        self.__post_load_numbers()
         self.__post_load_codes()
         self.__post_load_formats()
 
     def pre_save(self):
-        if 'codes' not in self.data:
-            self.data['codes'] = dict()
-
-        for length, codes in self.codes.items():
-            codes = dict(codes)
-            self.data['codes'][length] = codes
-
-            for code, replacement in codes.items():
-                self.data_report_value('code',code, replacement)
-
-        for value, replacement in self.numbers.items():
-            self.data_report_value('number',value, replacement)
+        self.__pre_save_codes()
+        self.__pre_save_numbers()
 
     def process(self):
         self.__discover_code()
@@ -144,27 +149,46 @@ class PhoneData(Data):
                     values.append(number)
         return values
 
+    def __post_load_exclusion(self):
+        """
+        Called by post_load() to load internal representation of exclusion
+        """
+        exclusion = self.conf.get('exclusion')
+        if isinstance(exclusion, list):
+            for number in exclusion:
+                self.exclusion.add(str(number))
+
     def __post_load_formats(self):
         """
-        Get internal representation of formats
-        :return: List of compiled regular expression
-        :rtype: list[re]
+        Called by post_load() to load internal representation of formats
         """
-        self.formats = list()
-        for a_format in self.conf.get('formats', list()):
-            self.formats.append(re.compile('^' + a_format + '$'))
+        formats = self.conf.get('formats')
+        if isinstance(formats,list):
+            for a_format in formats:
+                self.formats.append(re.compile('^' + a_format + '$'))
 
     def __post_load_codes(self):
         """
-        Generate the internal representation of codes
+        Called by post_load() to load internal representation of codes
         """
-        for length, conf_codes in self.data.setdefault('codes', dict()).items():
-            # Convert key value to string or keep None if None
-            conf_codes = dict(map(lambda (k,v): (str_or_none(k), str_or_none(v)), conf_codes.items()))
-            codes = OrderedDict(conf_codes)
-            self.codes[length] = codes
+        codes = self.data.get('codes')
+        if isinstance(codes, dict):
+            for code, replacement in codes.items():
+                code = str(code).upper()
+                if replacement is not None:
+                    replacement = str(replacement).upper()
+                self.codes[code] = replacement
+            self.__sort_codes()
 
-        self.__sort_codes()
+    def __post_load_numbers(self):
+        """
+        Called by post_load() to load internal representation of numbers
+        """
+        numbers = self.data.get('numbers')
+        if not isinstance(numbers, dict):
+            numbers = dict()
+        for number, replacement in numbers.items():
+            self.numbers[str(number)] = str_or_none(replacement)
 
     def __get_lcm_number(self, number):
         """
@@ -174,32 +198,23 @@ class PhoneData(Data):
         :return: The codes or None if no one is found
         :rtype: str
         """
-        codes = self.codes.setdefault(len(number), None)
-
-        if codes is None:
-            return None
-
-        for code in codes.keys():
-            if number.startswith(code):
+        length = len(number)
+        for code in self.codes.keys():
+            if len(code) == length and number.startswith(code.replace('X', '')):
                 return code
-
         return None
 
-    def __get_lcm_replacement(self, number, length=None):
+    def __get_lcm_replacement(self, number):
         """
-        Get the replacement value for a code from the specified length or the number length
-        :param length: The length (optionnal)
-        :type length: int
+        Get the replacement code from another code or a number with the longest match
+        :param number: The code or the number
+        :type number: str
         :return: The replacement code or None if not found
         :rtype: str | None
         """
-        if length is None:
-            length = len(number)
-
-        codes = self.codes.setdefault(length, dict())
-
-        for code, replacement in codes.items():
-            if number.startswith(code) and replacement is not None:
+        length = len(number)
+        for code, replacement in self.codes.items():
+            if (replacement is not None) and number.startswith(code.replace('X', '')):
                 return replacement
         return None
 
@@ -209,50 +224,50 @@ class PhoneData(Data):
         """
         for number, replacement in self.numbers.items():
             length = len(number)
-            if length <= 3:
+            if length <= self.digit_preserved:
                 continue
-
-            if self.__get_lcm_number(number) is None:
-                code = number[:-3] # Remove the 3 last digit
-                if length not in self.codes or self.codes[length] is None:
-                    self.codes[length] = OrderedDict()
-                self.codes[length][code] = None
+            if (number not in self.exclusion) and (self.__get_lcm_number(number) is None):
+                code = number[:-self.digit_preserved] # Remove the preserved digit
+                code += 'X' * self.digit_preserved
+                self.codes[code] = None
 
         self.__sort_codes()
 
     def __sort_codes(self):
         """
-        For each length sort codes by length (longest before)
+        For each sort codes by length (longest before)
         """
-        for length, codes in self.codes.items():
-            codes = OrderedDict(sorted(codes.items(), key=lambda code: len(code[0]), reverse=True))
-            self.codes[length] = codes
+        self.codes = OrderedDict(sorted(self.codes.items(), key=lambda x: len(x[0]), reverse=True))
 
     def __anonymise_code(self):
         """
         Creates replacement values for all codes
         """
-        for lenght, codes in self.codes.items():
-            for code, replacement in reversed(codes.items()):
-                self.data_report_processed('code', 'number')
-                if replacement is None:
-                    try:
-                        supercode = self.__get_lcm_replacement(code, lenght)
-                        while range(100000): # Avoid infinite loop
-                            if supercode is None:
-                                rand_code = self.__rand_str_number(len(code))
-                            else:
-                                rand_code = supercode + self.__rand_str_number(len(code) - len(rand_code))
-
-                            if not rand_code.startswith('0') and rand_code not in codes.values():
-                                codes[code] = rand_code
-                                break
-                        self.data_report_processed('code', 'processed')
-                    except Exception as e:
-                        self.data_report_processed('code', 'error')
-                        self.app.log.error("sirano:data:phone: Fail to generate a replacement value, code='{}',"
-                                           "exception='{}', message='{}'".format(code, type(e), e.message))
-                        raise
+        for code, replacement in reversed(self.codes.items()):
+            self.data_report_processed('code', 'number')
+            if replacement is None:
+                try:
+                    supercode = self.__get_lcm_replacement(code)
+                    has_supercode = supercode is not None
+                    i = 0
+                    while True:
+                        if has_supercode:
+                            rand_code = supercode.replace('X', '') + self.__rand_str_number(len(code.replace('X', '')) - len(supercode.replace('X', '')))
+                        else:
+                            rand_code = self.__rand_str_number(len(code.replace('X', '')))
+                        rand_code += 'X' * (len(code) - len(code.replace('X', '')))
+                        if rand_code not in self.codes.values():
+                            self.codes[code] = rand_code
+                            break
+                        i +=1
+                        if i > 100000000:
+                            self.app.log.error("Fail to generate code replacement value, code = '{}'".format(code))
+                    self.data_report_processed('code', 'processed')
+                except Exception as e:
+                    self.data_report_processed('code', 'error')
+                    self.app.log.error("sirano:data:phone: Fail to generate a replacement value, code='{}',"
+                                       "exception='{}', message='{}'".format(code, type(e), e.message))
+                    raise
 
     def __anonymise_number(self):
         """
@@ -261,29 +276,53 @@ class PhoneData(Data):
         for number, replacement in self.numbers.items():
             self.data_report_processed('number', 'number')
             if replacement is None:
-                try:
-                    code = self.__get_lcm_replacement(number)
-                    replacement = code + number[len(code):]
-                    self.numbers[number] = replacement
-                    self.data_report_processed('number', 'processed')
-                except Exception as e:
-                    self.data_report_processed('number', 'error')
-                    self.app.log.error("sirano:data:phone: Fail to generate a replacement value, number='{}',"
-                                           "exception='{}', message='{}'".format(number, type(e), e.message))
-                    raise
+                if number in self.exclusion:
+                    self.numbers[number] = number
+                else:
+                    try:
+                        code = self.__get_lcm_replacement(number)
+                        replacement = code.replace('X', '') + number[len(code.replace('X', '')):]
+                        self.numbers[number] = replacement
+                    except Exception as e:
+                        self.data_report_processed('number', 'error')
+                        self.app.log.error("sirano:data:phone: Fail to generate a replacement value, number='{}',"
+                                               "exception='{}', message='{}'".format(number, type(e), e.message))
+                        raise
+                self.data_report_processed('number', 'processed')
 
     @staticmethod
     def __rand_str_number(length):
         """
         Randomize digit of a number
         :param length: The length
-        :type length: str
+        :type length: int
         :return: The randomized number
         :type: str
         """
-        rand_number = ''
+        rand_number = list()
         for _ in range(length):
-            rand_number += str(randint(0, 9))
-        return rand_number
+            rand_number.append(str(randint(0, 9)))
+        shuffle(rand_number) # More random
+        return ''.join(rand_number)
+
+    def __pre_save_codes(self):
+        """
+        Called by pre_save() to prepare codes for saving
+        """
+        if not isinstance(self.data.get('codes'), dict):
+            self.data['codes'] = dict()
+        for code, replacement in self.codes.items():
+            self.data['codes'][code] = replacement
+            self.data_report_value('code',code, replacement)
+
+    def __pre_save_numbers(self):
+        """
+        Called by pre_save() to prepare numbers for saving
+        """
+        if not isinstance(self.data.get('numbers'), dict):
+            self.data['numbers'] = dict()
+        for number, replacement in self.numbers.items():
+            self.data['numbers'][number] = replacement
+            self.data_report_value('number',number, replacement)
 
 

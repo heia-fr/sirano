@@ -49,30 +49,20 @@ class MacData(Data):
     def __init__(self, app):
         super(MacData, self).__init__(app)
         self.macs = None
-        """:type : dict"""
+        """
+        The MAC addresses with replacement values
+        :type : dict
+        """
+
+        self.exclusion = set()
+        """
+        The MAC addresses to not anonymize
+        :type: set[str]
+        """
 
     def post_load(self):
-        super(MacData, self).post_load()
-
-        self.macs = self.link_data('macs', dict)
-
-        for k, v in self.macs.items():
-
-            old_k = k
-            k = k.lower()
-
-            if netaddr.valid_mac(k) is False:
-                self.app.log.error("data:mac: Invalid key format '{}: File {}".format(k, self.path))
-                continue
-
-            if v is not None:
-                v = v.lower()
-                if netaddr.valid_mac(k) is False:
-                    self.app.log.error("data:mac: Invalid value format '{}: File {}".format(k, self.path))
-                    continue
-
-            del self.macs[old_k]
-            self.macs[k] = v
+        self.__post_load_macs()
+        self.__post_load_exclusion()
 
     def pre_save(self):
         for value, replacement in self.macs.items():
@@ -87,27 +77,27 @@ class MacData(Data):
                                    oui & 0xff)
 
     def process(self):
-
         for k, v in self.macs.items():
             self.data_report_processed('mac', 'number')
             if v is None:
-                try:
-                    self.macs[k] = None
-
-                    n = netaddr.EUI(k)
-                    oui = self.__oui(n)
-
-                    r = "{}-{:02X}-{:02X}-{:02X}".format(oui,
-                                                         random.randint(0x00, 0x7f),
-                                                         random.randint(0x00, 0xff),
-                                                         random.randint(0x00, 0xff))
-                    self.macs[k] = r.replace('-', ':').lower()
-                    self.data_report_processed('mac', 'processed')
-                except Exception as e:
-                    self.data_report_processed('mac', 'error')
-                    self.app.log.error("sirano:data:mac: Fail to generate a replacement value, mac='{}',"
-                                       "exception='{}', message='{}'".format(k, type(e), e.message))
-                    raise
+                if k in self.exclusion:
+                    self.macs[k] = k
+                else:
+                    try:
+                        self.macs[k] = None
+                        n = netaddr.EUI(k)
+                        oui = self.__oui(n)
+                        r = "{}-{:02X}-{:02X}-{:02X}".format(oui,
+                                                             random.randint(0x00, 0x7f),
+                                                             random.randint(0x00, 0xff),
+                                                             random.randint(0x00, 0xff))
+                        self.macs[k] = r.replace('-', ':').lower()
+                    except Exception as e:
+                        self.data_report_processed('mac', 'error')
+                        self.app.log.error("sirano:data:mac: Fail to generate a replacement value, mac='{}',"
+                                           "exception='{}', message='{}'".format(k, type(e), e.message))
+                        raise
+                self.data_report_processed('mac', 'processed')
 
     def _add_value(self, value):
         if value not in self.macs:
@@ -116,13 +106,10 @@ class MacData(Data):
         return False
 
     def _get_replacement(self, value):
-
         r = self.macs.get(value, None)
-
         if r is None:
             self.app.log.error("data:mac: Replacement value not found for '%s'", value)
             return ''
-
         return r
 
     def is_valid(self, value):
@@ -149,6 +136,34 @@ class MacData(Data):
         founds = self.re_mac_find.findall(string)
         values = filter(lambda v: self.is_valid(v), founds)
         return values
+
+    def __post_load_macs(self):
+        """
+        Called by post_load() to load internal representation of macs
+        """
+        self.macs = self.link_data('macs', dict)
+        for k, v in self.macs.items():
+            old_k = k
+            k = k.lower()
+            if netaddr.valid_mac(k) is False:
+                self.app.log.error("data:mac: Invalid key format '{}: File {}".format(k, self.path))
+                continue
+            if v is not None:
+                v = v.lower()
+                if netaddr.valid_mac(k) is False:
+                    self.app.log.error("data:mac: Invalid value format '{}: File {}".format(k, self.path))
+                    continue
+            del self.macs[old_k]
+            self.macs[k] = v
+
+    def __post_load_exclusion(self):
+        """
+        Called by post_load() to load internal representation of exception
+        """
+        exclusion = self.conf.get('exclusion')
+        if isinstance(exclusion, list):
+            for mac in exclusion:
+                self.exclusion.add(mac)
 
     class MacAddress(object):
 

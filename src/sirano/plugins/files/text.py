@@ -35,8 +35,11 @@ class TextFile(File):
 
     name = 'text'
 
-    re_hexdump = re.compile(r"([a-f0-9]+:?(?:\s+(?:[a-f0-9]{2})?){16}\s+.{16})", re.IGNORECASE)
-    """The regular expression to find hexdump line"""
+    re_hexdump = re.compile(r"([a-f0-9]+:?\s{1,2}[a-f0-9]{2}(?:\s{1,2}[a-f0-9\s]{2}){15}\s+.{16})", re.IGNORECASE)
+    """
+    The regular expression to find hexdump line
+    """
+
 
     def __init__(self, app, a_file):
         super(TextFile, self).__init__(app, a_file)
@@ -77,6 +80,7 @@ class TextFile(File):
 
         with open(a_file, 'r') as f:
             for line in f:
+                line = line.replace('\r', '').replace('\n', '')
                 if self.re_hexdump.search(line) is None:
                     action.discover(line)
 
