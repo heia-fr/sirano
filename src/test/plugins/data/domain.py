@@ -18,6 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+import unittest
+from sirano.plugins.data.domain import DomainData
 
 
-"""Test package for data plugins"""
+class DomainDataTest(unittest.TestCase):
+    """Unit tests for domain data plugin"""
+
+    correct_samples = [
+        "_sip._tls.exch2010.local",
+    ]
+
+    def test_re_p_charging_vector(self):
+        regex = DomainData.re_domain
+
+        # Correct sample 1
+        match = regex.match(self.correct_samples[0])
+        self.assertIsNotNone(match)

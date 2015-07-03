@@ -46,7 +46,8 @@ class ActionManager(Manager):
         try:
             a_cls = self.action_classes[name]
         except KeyError:
-            __import__('sirano.plugins.actions.' + name)
+            import_name = name.replace('-', '_')
+            __import__('sirano.plugins.actions.' + import_name)
             a_cls = self.action_classes[name]
 
         a = a_cls(self.app)

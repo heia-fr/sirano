@@ -18,6 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+from scapy.fields import StrField
 
+from scapy.packet import Packet, bind_layers
+from scapy.layers.rtp import RTP
 
-"""Test package for data plugins"""
+class RawPayload(Packet):
+
+    name = "Raw Payload"
+
+    fields_desc = [ StrField("content", "") ]

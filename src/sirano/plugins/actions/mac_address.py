@@ -20,4 +20,25 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
-"""Test package for data plugins"""
+from sirano.action import Action
+
+
+class MacAddressAction(Action):
+    """Action plugin for a mac address"""
+
+    name = "mac-address"
+
+    def __init__(self, app):
+        super(MacAddressAction, self).__init__(app)
+
+        self.mac = self.app.manager.data.get_data('mac')
+        """:type : MacData"""
+
+
+    def discover(self, value):
+        self.mac.add_value(value)
+
+
+    def anonymize(self, value):
+        return self.mac.get_replacement(value)
+

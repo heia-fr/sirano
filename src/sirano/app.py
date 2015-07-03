@@ -24,6 +24,8 @@ from datadiff import diff
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
+sirano_loggers = dict()
+
 class Phase(Enum):
     phase_1 = 1
     phase_2 = 2
@@ -135,6 +137,7 @@ class ProjectPath(AppBase):
         shutil.rmtree(self.report)
         shutil.rmtree(self.validation)
         shutil.rmtree(self.trash)
+        shutil.rmtree(self.logs)
         shutil.copytree(self.app.default.report, self.report) # Retrieve report base files
         self.load()
 
@@ -240,7 +243,6 @@ class App(object):
 
         self.project.clean()
 
-
     def __load_report(self):
         """
         Load the report JSON file
@@ -253,31 +255,44 @@ class App(object):
             self.log.debug(e)
         self.report = report
 
-
     def __load_log(self):
         """
         Load the log handler
         """
-        log = logging.getLogger("sirano")
+
+        log = sirano_loggers.get('sirano')
+
+        if log:
+            self.log = log
+        else:
+            log = logging.getLogger("sirano")
+            sirano_loggers['sirano'] = log
+
         log.setLevel(logging.DEBUG)
 
         fmt = logging.Formatter('%(asctime)s:%(levelname)8s:%(name)s:%(message)s')
 
+
+
         # Console handler
         handler_console = logging.StreamHandler()
-        handler_console.setLevel(logging.WARNING)
+        handler_console.setLevel(logging.INFO)
         handler_console.setFormatter(fmt)
 
+        if self.phase == 1:
+            phase = 'discovery'
+        elif self.phase == 2:
+            phase = 'generation'
+        elif self.phase == 3:
+            phase = 'anonymisation'
+        elif self.phase == 4:
+            phase = 'validation'
+        else:
+            phase = 'others'
         # All file handler
-        path = self.project.logs + '/'
-
-        try:
-            os.makedirs(path)
-        except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(path):
-                pass
-            else:
-                raise
+        path = self.project.logs + '/' + phase + '/'
+        makedirs(path)
+        path += time.strftime("%Y-%m-%d_%H-%M-%S_")
 
         handler_critical = logging.FileHandler(path + 'critical.log', mode="a", encoding="utf-8")
         handler_critical.setLevel(logging.CRITICAL)
@@ -292,11 +307,14 @@ class App(object):
         handler_debug.setLevel(logging.DEBUG)
         handler_debug.setFormatter(fmt)
 
+        for hdlr in log.handlers:  # remove all old handlers
+            log.removeHandler(hdlr)
         log.addHandler(handler_console)
         log.addHandler(handler_critical)
         log.addHandler(handler_error)
         log.addHandler(handler_info)
         log.addHandler(handler_debug)
+
 
         log.info("app: Sirano logs in console")
 

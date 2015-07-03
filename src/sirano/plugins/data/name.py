@@ -23,6 +23,7 @@ import re
 
 
 from sirano.data import Data
+from sirano.exception import ValueNotFoundException
 from sirano.utils import word_generate
 
 
@@ -88,8 +89,7 @@ class NameData(Data):
         value = value.lower()
         r = self.names.get(value, None)
         if r is None:
-            self.app.log.error("data:name: Replacement value not found for '%s'", value)
-            return ''
+            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(self.name, value))
         return r
 
     def has_replacement(self, replacement):
@@ -152,8 +152,7 @@ class NameData(Data):
             for subname in name_split:
                 word = word_generate(len(subname))
                 replacement = replacement.replace(subname, word, 1)
-
-            if replacement not in self.names.keys():
+            if replacement not in self.names.values():
                 return replacement
 
     def __post_load_exclusion(self):

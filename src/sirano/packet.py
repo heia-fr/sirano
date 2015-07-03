@@ -21,8 +21,8 @@
 
 from collections import defaultdict
 from scapy.packet import Packet, NoPayload
-from sirano.exception import ExplicitDropException, ImplicitDropException
-from sirano.utils import AppBase, find_one_dict_by_key
+from sirano.exception import ExplicitDropException, ImplicitDropException, DropException, ErrorDropException
+from sirano.utils import AppBase, find_one_dict_by_key, raise_drop_exception
 
 
 class PacketAnonymizer(AppBase):
@@ -77,7 +77,7 @@ class PacketAnonymizer(AppBase):
                 else:
                     self.__report_increment_layer(name, 'error')
                     self.__report_increment_packet(packet, 'error')
-                raise type(e)("layer = '{}', {}".format(layer.__class__.__name__, e.message))
+                raise_drop_exception(e, "layer = '{}'".format(name))
             else:
                 if layer_action.name == 'anonymize':
                     self.__report_increment_layer(name, 'anonymized')
@@ -109,7 +109,7 @@ class PacketAnonymizer(AppBase):
                 else:
                     self.__report_increment_layer(name, 'error', True)
                     self.__report_increment_packet(packet, 'error', True)
-                raise type(e)("layer = '{}', {}".format(layer.__class__.__name__, e.message))
+                raise_drop_exception(e, "layer = '{}'".format(name))
             else:
                 if layer_action.name == 'anonymize':
                     self.__report_increment_layer(name, 'anonymized', True)
@@ -133,11 +133,12 @@ class PacketAnonymizer(AppBase):
         validation = list()
         for layer in self.__packet_layers(packet):
             try:
-                layer_validation = self.layers[layer.__class__.__name__].validate(layer)
+                name = layer.__class__.__name__
+                layer_validation = self.layers[name].validate(layer)
                 if layer_validation is not None:
                     validation.append(layer_validation)
             except Exception as e:
-                raise type(e)("layer = '{}', {}".format(layer.__class__.__name__, e.message))
+                raise_drop_exception(e, "layer = '{}'".format(name))
         self.current_packet = None
         return '\n\n'.join(validation)
 
@@ -169,8 +170,8 @@ class PacketAnonymizer(AppBase):
                 elif conf == 'drop':
                     layers[layer] = ExplicitDropLayerAction(self.app)
                 else:
-                    self.app.log.error("packet: Invalid action = '{}' for layer = '{}' in {}".format(conf, layer,
-                                                                                                     self.app.project.config))
+                    self.app.log.error("packet: Invalid action = '{}' for layer = '{}' in {}".format(
+                        conf, layer, self.app.project.config))
             else:
                 layers[layer] = AnonymizeLayerAction(self.app, conf)
         return layers
@@ -315,6 +316,10 @@ class LayerAction(AppBase):
         raise NotImplementedError
 
 
+class DropExecption(object):
+    pass
+
+
 class AnonymizeLayerAction(LayerAction):
     name = "anonymize"
 
@@ -338,14 +343,14 @@ class AnonymizeLayerAction(LayerAction):
             try:
                 self.__discover_field(layer, field)
             except Exception as e:
-                raise type(e)("field = '{}', {}".format(field, e.message))
+                raise_drop_exception(e, "field = '{}'".format(field))
 
     def anonymize(self, layer):
         for field in layer.fields.keys():
             try:
                 self.__anonymize_field(layer, field)
             except Exception as e:
-                raise type(e)("field = '{}', {}".format(field, e.message))
+                raise_drop_exception(e, "field = '{}'".format(field))
 
     def validate(self, layer):
         validation = list()
@@ -353,7 +358,7 @@ class AnonymizeLayerAction(LayerAction):
             try:
                 validation.append(self.__validate_field(layer, field))
             except Exception as e:
-                raise type(e)("field = '{}', {}".format(field, e.message))
+                raise_drop_exception(e, "field = '{}'".format(field))
 
         return '{}:\n  {}'.format(layer.__class__.__name__, '\n  '.join(validation))
 
@@ -365,7 +370,7 @@ class AnonymizeLayerAction(LayerAction):
         :param field: The field name
         :type field: str
         """
-        action = self.fields[field]
+        action = self.fields[field.lower()]
         values = getattr(layer, field)
 
         if values is not None:
@@ -389,10 +394,10 @@ class AnonymizeLayerAction(LayerAction):
         :param field: The field name
         :type field: str
         """
-        action = self.fields[field]
+        action = self.fields[field.lower()]
 
-        if action.name == 'pass' and layer.__class__.__name__ == 'IP' and field == 'options':
-            return
+        # if action.name == 'pass' and layer.__class__.__name__ == 'IP' and field == 'options':
+        #     return
 
         values = getattr(layer, field)
 
@@ -420,7 +425,7 @@ class AnonymizeLayerAction(LayerAction):
         :return The value for the validation
         :rtype str
         """
-        action = self.fields[field]
+        action = self.fields[field.lower()]
         values = getattr(layer, field)
 
         if values is not None:
@@ -451,7 +456,7 @@ class AnonymizeLayerAction(LayerAction):
         try:
             action.discover(value)
         except Exception as e:
-            raise type(e)("action = '{}', {}".format(action.name, e.message))
+            raise_drop_exception(e, "action = '{}', value = {}".format(action.name, repr(value)))
 
     @staticmethod
     def __anonymize_value(action, value):
@@ -469,7 +474,7 @@ class AnonymizeLayerAction(LayerAction):
         try:
             value = action.anonymize(value)
         except Exception as e:
-            raise type(e)("action = '{}', value = '{}', {}".format(action.name, [value], e.message))
+            raise_drop_exception(e, "action = '{}', value = {}".format(action.name, repr(value)))
         else:
             if value is not None:
                 value = value_type(value)  # Cast to the original type
@@ -493,17 +498,17 @@ class AnonymizeLayerAction(LayerAction):
         conf = self.conf.setdefault('fields', dict())
 
         for field, action in conf.items():
-            fields[field] = am.get_action(action)
+            fields[field.lower()] = am.get_action(action)
 
         return fields
 
 
 class PassLayerAction(LayerAction):
-    name = "pass"
-
     """
     Layer Action to pass a layer without anonymization
     """
+
+    name = "pass"
 
     def discover(self, layer):
         pass
@@ -516,36 +521,36 @@ class PassLayerAction(LayerAction):
 
 
 class ExplicitDropLayerAction(LayerAction):
-    name = "explicit-drop"
-
     """
     Layer Action to drop explicitly a layer
     """
 
+    name = "explicit-drop"
+
     def discover(self, layer):
-        raise ExplicitDropException()
+        raise ExplicitDropException('layer configured to be drop')
 
     def anonymize(self, layer):
-        raise ExplicitDropException()
+        raise ExplicitDropException('layer configured to be drop')
 
     def validate(self, layer):
-        raise ExplicitDropException()
+        raise ExplicitDropException('layer configured to be drop')
 
 
 class ImplicitDropLayerAction(LayerAction):
-    name = "implicit-drop"
-
     """
     Layer Action to drop implicitly a layer
 
     This is the default layer action, that mean its is not configured by the user
     """
 
+    name = "implicit-drop"
+
     def discover(self, layer):
-        raise ImplicitDropException()
+        raise ImplicitDropException('layer not configured')
 
     def anonymize(self, layer):
-        raise ImplicitDropException()
+        raise ImplicitDropException('layer not configured')
 
     def validate(self, layer):
-        raise ImplicitDropException()
+        raise ImplicitDropException('layer not configured')

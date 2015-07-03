@@ -24,6 +24,7 @@ from random import randint, shuffle
 import re
 
 from sirano.data import Data
+from sirano.exception import ValueNotFoundException
 from sirano.utils import str_or_none
 
 
@@ -82,8 +83,7 @@ class PhoneData(Data):
                 replacement = self.numbers.get(number, None)
                 return prefix + replacement
 
-        self.app.log.error("data:phone: Replacement value not found for '%s'", value)
-        return None
+        raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(self.name, value))
 
     def post_load(self, ordereddict=None):
         self.digit_preserved = self.conf.get('digit-preserved', self.digit_preserved)
@@ -237,7 +237,7 @@ class PhoneData(Data):
         """
         For each sort codes by length (longest before)
         """
-        self.codes = OrderedDict(sorted(self.codes.items(), key=lambda x: len(x[0]), reverse=True))
+        self.codes = OrderedDict(sorted(self.codes.items(), key=lambda x: len(x[0].replace('X', '')), reverse=True))
 
     def __anonymise_code(self):
         """

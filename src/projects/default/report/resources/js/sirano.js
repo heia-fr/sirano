@@ -59,10 +59,10 @@ siranoApp.controller('siranoCtrl', function ($scope, $http, $filter) {
 
         if ($scope.errors) {
             $scope.donut_usability.setData([
-                {label: 'Anonymization failed', value: 0},
-                {label: 'Anonymization failed', value: 0},
-                {label: 'Anonymization failed', value: 0},
-                {label: "Anonymization failed", value: 100}
+                {label: 'Anonymization failed', value: 0, data: 0},
+                {label: 'Anonymization failed', value: 0, data: 0},
+                {label: 'Anonymization failed', value: 0, data: 0},
+                {label: "Anonymization failed", value: 100, data: 0}
             ]);
         } else {
             $scope.donut_usability.setData([

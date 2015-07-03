@@ -20,4 +20,24 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
-"""Test package for data plugins"""
+from sirano.action import Action
+
+
+class IpAddressAction(Action):
+    """Action plugin for a IP address"""
+
+    name = "ip-address"
+
+    def __init__(self, app):
+        super(IpAddressAction, self).__init__(app)
+
+        ip = self.app.manager.data.get_data('ip')
+
+        self.ip = ip
+
+    def discover(self, value):
+        self.ip.add_value(value)
+
+    def anonymize(self, value):
+        return self.ip.get_replacement(value)
+

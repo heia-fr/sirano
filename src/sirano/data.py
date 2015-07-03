@@ -8,6 +8,7 @@ import re
 import datetime
 
 import yaml
+
 from sirano.exception import DataException, InvalidValueDataException
 
 from sirano.manager import Manager
@@ -339,6 +340,8 @@ class Data(AppBase):
         :return True if the value is added | False otherwise
         :raise DataException: The value is not valid
         """
+        if value == '' or value is None:
+            return
         if (not validate) or self.is_valid(value):
             try:
                 added = self._add_value(value)
@@ -351,7 +354,7 @@ class Data(AppBase):
                 raise
         else:
             self.manager.report_data_increment(self, 'invalid')
-            raise InvalidValueDataException(self, value)
+            raise InvalidValueDataException("data = '{}', value = '{}'".format(self.name, value))
 
     def _add_value(self, value):
         """
@@ -456,7 +459,7 @@ class Data(AppBase):
 
         for re_exclusion in self.__exclusion:
             for exclusion in re_exclusion.findall(string):
-                string = string.replace(exclusion, ' ')
+                string = string.replace(exclusion, '')
 
         return self._find_values(string)
 

@@ -135,6 +135,9 @@ class FileManager(Manager):
                     self.__report_update_file(name, {'type': f.name,
                                                      'size' : f.size})
 
+        if len(self.files) == 0:
+            self.app.log.info("There are no files to process")
+
         self.files.sort(key=lambda x: x.priority)
 
     def anonymize_all(self):
@@ -146,6 +149,7 @@ class FileManager(Manager):
             f.anonymize()
             f_end = datetime.datetime.now()
             self.__report_update_file(f.file, {'anonymize_duration': date_to_json(f_end - f_start)})
+
         end = datetime.datetime.now()
         self.app.report_update_phase('Anonymize', {'start': date_to_json(start),
                                                  'end': date_to_json(end),
@@ -160,6 +164,7 @@ class FileManager(Manager):
             f.discover()
             f_end = datetime.datetime.now()
             self.__report_update_file(f.file, {'discover_duration': date_to_json(f_end - f_start)})
+
         end = datetime.datetime.now()
         self.app.report_update_phase('Discover', {'start': date_to_json(start),
                                                 'end': date_to_json(end),
@@ -174,6 +179,8 @@ class FileManager(Manager):
             f.validate()
             f_end = datetime.datetime.now()
             self.__report_update_file(f.file, {'validate_duration': date_to_json(f_end - f_start)})
+
+
         end = datetime.datetime.now()
         self.app.report_update_phase('Validate', {'start': date_to_json(start),
                                                 'end': date_to_json(end),

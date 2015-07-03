@@ -2,6 +2,8 @@ layer:
   bind-layers:
     - lower: UDP
       upper: RTP
+    - lower: RTP
+      upper: RawPayload
 
 file:
   pcap:
@@ -11,9 +13,6 @@ file:
 
 packet:
   layers:
-
-    Raw: drop
-
     Padding: pass
 
     SDP:
@@ -37,9 +36,16 @@ packet:
         P-Preferred-Identity: sip-identity
         Contact: sip-identity
         Diversion: sip-identity
+        Referred-By: sip-identity
         Call-ID: sip-call-id
         P-Charging-Vector: sip-p-charging-vector
         Via: sip-via
+        Route: auto # TODO create or adapt an action
+        Record-Route: auto # TODO create or adapt an action
+        Remote-Party-ID: auto # TODO create or adapt an action
+        Refer-To: auto # TODO create or adapt an action
+        X-Siemens-IID: drop # Contain MAC address in unsupported format
+        Content-Id: auto
         Accept: pass
         Content-Length: pass
         User-Agent: pass
@@ -63,6 +69,17 @@ packet:
         x-nt-location: pass
         x-nt-corr-id: pass
         X-Siemens-Call-Type: pass
+        Av-Global-Session-ID: pass
+        Privacy: pass
+        Alert-Info: pass
+        Event: pass
+        Subscription-State: pass
+        Content-Disposition: pass
+        Call-Info: pass
+        RTP-TxStat: pass
+        Send-Info: pass
+        Warning: pass
+        RTP-RxStat: pass
 
     SIPResponse: pass
 
@@ -72,10 +89,6 @@ packet:
       other-fields: pass
 
     SIP: pass
-
-    RTP: drop
-
-    IPv6: drop
 
     IP:
       fields:
@@ -134,6 +147,7 @@ packet:
       other-fields: pass
 
     Dot1Q: pass
+    CookedLinux: pass
 
     ARP:
       fields:
@@ -149,6 +163,15 @@ packet:
         dst: mac-address
       other-fields: pass
 
+    Dot3:
+      fields:
+        dst: mac-address
+        src: mac-address
+      other-fields:
+        pass
+
+    LLC: pass
+
     DNS: # Do not pass layer to process packet inside field
       other-fields: pass
 
@@ -162,6 +185,30 @@ packet:
         rrname: domain-name
         rdata: dns-rdata
       other-fields: pass
+
+    DNSRROPT:
+      fields:
+        rrname: domain-name
+        rdata: dns-rdata
+      other-fields: pass
+
+    RTP: pass
+    RawPayload:
+      fields:
+        content: raw-payload
+
+    # Not supported protocols
+    Raw: drop # Unreconnized protocols (no Scapy layer)
+    DNSRRRSIG: drop # DNSsec
+    ESP: drop
+    NBNSQueryRequest: drop
+    BOOTP: drop
+    SNAP: drop
+    STP: drop
+    IPv6: drop
+    NBTDatagram: drop
+    NTP: drop
+    SNMP: drop
 
 data:
   ip:
@@ -205,11 +252,12 @@ data:
       - private   # TLD for private LAN RFC 6762
       - internal  # TLD for private LAN RFC 6762
       - localnet  # TLD for private LAN
+      - intra
     exclusion:
       - invalid.net
 
   name:
-    special-char: [" ", "-", ".", "/", "\\", "_"]
+    special-char: [" ", "-", ".", "/", "\\", "_", "*"]
     exclusion:
       - unknown
       - anonymous
@@ -221,6 +269,7 @@ data:
         - (00|0)(\d{7,10})       # Regionnal numbers
         - ()(\d{10,15})          # Other numbers
     exclusion:
+      - 41797133116
 
   mac:
     exclusion:
@@ -237,3 +286,16 @@ data:
       - 'Owner/Creator, Session Id \(o\): .+ (\d+ \d+) IN IP4'
       - 'User-Agent: Nortel SESM (\d{1,2}(?:\.\d{1,2}){3})'
       - 'CSeq: (\d{5})'
+      - 'Synchronization Source identifier: ([^\s]+\s\(\d+\))'
+      - 'Sender SSRC: ([^\s]+\s\(\d+\))'
+      - 'Extended highest sequence number received: (\d+)'
+      - 'Interarrival jitter: (\d+)'
+      - 'Last SR timestamp: (\d+\s\([^\)]+\))'
+      - 'Timestamp, (?:LSW|MSW): (\d+\s\([^\)]+\))'
+      - 'Identifier: (\w+\s\(\w+\))'
+      - 'Delay since last SR timestamp: (\d+ \(\d+ milliseconds\))'
+      - 'Sender.s packet count: (\d+)'
+      - 'Sender.s octet count: (\d+)'
+      - 'RTP timestamp: (\d+)'
+      - 'Call-ID: (\w+)@'
+

@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+from sirano.exception import ValueNotFoundException
 from sirano.utils import word_generator, word_generate
 
 import re
@@ -33,10 +34,10 @@ class DomainData(Data):
 
     name = 'domain'
 
-    re_domain = re.compile(r"^((?:[A-Z0-9](?:[A-Z0-9\-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6})$", re.IGNORECASE)
+    re_domain = re.compile(r"^((?:[A-Z0-9_](?:[A-Z0-9\-_]{0,61}[A-Z0-9])?\.){1,126}[A-Z]{2,6})$", re.IGNORECASE)
     """The regular expression to match a domain name"""
 
-    re_domain_find = re.compile(r"^(([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z0-9]{2,})$", re.IGNORECASE)
+    re_domain_find = re.compile(r"((?:(?:[A-Z0-9\-_]{0,63})\.){2,127})", re.IGNORECASE)
     """The regular expression for finding a domain name"""
 
     def __init__(self, app):
@@ -132,8 +133,7 @@ class DomainData(Data):
         r = self.domains.get(value, None)
 
         if r is None:
-            self.app.log.error("data:domain: Replacement value not found for '%s'", value)
-            return ''
+            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(self.name, value))
 
         return r
 

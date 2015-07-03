@@ -30,7 +30,7 @@ from enum import Enum
 import subprocess
 from sirano.app import Phase
 
-from sirano.exception import ExplicitDropException, ImplicitDropException
+from sirano.exception import ExplicitDropException, ImplicitDropException, ErrorDropException
 from sirano.file import File
 
 
@@ -70,10 +70,15 @@ class PCAPFile(File):
         """
 
         for index, packet in enumerate(packets):
+
+            if index and (index % 10000) == 0:
+                self.app.log.info("pcap:{}: Process packet id = '{}'".format(self.file, index))
+
             packet_id = index + 1  # packet id start with 1
 
-            packet_backup = Packet(str(packet))
-            packet_backup.time = packet.time
+            # packet_backup = Packet(str(packet))
+            packet_backup = packet.original
+            packet_backup_time = packet.time
 
             try:
                 try:
@@ -90,15 +95,21 @@ class PCAPFile(File):
 
                 except Exception as e:
                     if isinstance(e, ExplicitDropException):
-                        self.app.log.info("Packet explicitly dropped: id = '{}', {}, {}".format(packet_id, e.message,
-                                                                                                packet.summary()))
+                        self.app.log.debug("file:pcap:{}: Packet explicitly dropped: id = '{}', {}, {}".format(
+                            self.file, packet_id, e.message, repr(packet.summary())))
                     elif isinstance(e, ImplicitDropException):
-                        self.app.log.warning("Packet implicitly dropped: id = '{}', {}, {}".format(packet_id, e.message,
-                                                                                                   packet.summary()))
+                        self.app.log.warning("file:pcap:{}: Packet implicitly dropped: id = '{}', {}, {}".format(
+                            self.file, packet_id, e.message, repr(packet.summary())))
+                    elif isinstance(e, ErrorDropException):
+                        self.app.log.error("file:pcap:{}: Error packet dropped: id = '{}', {}, {}".format(
+                            self.file, packet_id, e.message, repr(packet.summary())))
                     else:
-                        raise
+                        self.app.log.critical("file:pcap:{}: Unexpected error packet dropped: id = '{}', {}, {}".format(
+                            self.file, packet_id, e.message, repr(packet.summary())))
 
                     if self.app.phase is Phase.phase_3:
+                        packet_backup = Packet(packet_backup)
+                        packet_backup.time = packet_backup_time
                         drop_writer.write(packet_backup)
 
                 else:
@@ -106,12 +117,13 @@ class PCAPFile(File):
                         out_writer.write(packet)
 
             except Exception as e:
-                self.app.log.critical("Unexpected error: id = '{}', exception = '{}', message = '{}', {}".format(
-                    packet_id, type(e), e.message, packet.summary()))
+                self.app.log.critical(
+                    "sirano:file:pcap:{}: Unexpected error: id = '{}', exception = '{}', message = '{}', {}".format(
+                    self.file, packet_id, type(e), e.message, repr(packet.summary())))
 
     def __process_file(self, name):
 
-        self.app.log.info("file:pcap: Start anonymization: File = '{}'".format(name))
+        self.app.log.info("file:pcap:{}: Start anonymization: File = '{}'".format(self.file, name))
 
         in_path = os.path.join(self.app.project.input, name)
         packets = PcapReader(in_path)
@@ -156,7 +168,8 @@ class PCAPFile(File):
                                    drop_writer,
                                    validation_file)
         except Exception as e:
-            self.app.log.critical("file:pacp: Unexpected error: " + str(e))
+            self.app.log.critical("file:pcap:{}: Unexpected error: exception = '{}', message = '{}'".format(
+                self.file, type(e), e.message))
         finally:
             if self.app.phase is Phase.phase_3:
                 out_writer.close()
@@ -194,6 +207,8 @@ class PCAPFile(File):
         values = defaultdict(list)
         with open(self.validation_file_tshark) as a_file:
             for line_number, line in enumerate(a_file):
+                if line_number and line_number%10000==0:
+                    self.app.log.info("Validation in progress, line = '{}', file = '{}'".format(line_number, self.file))
                 values_line = self.app.manager.data.find_values_all(line)
                 for data, value in values_line.items():
                     value = map(lambda x: (line_number, x), value)
@@ -207,8 +222,10 @@ class PCAPFile(File):
                 if not data.has_replacement(value):
                     lines = []
                     self.app.log.error(
-                        "sirano:file:pcap: Validation error value is not replaced, files = '{}', line = '{}', "
-                        "data = '{}', value = '{}'".format(self.file, line_number, data_name, value))
+                        "file:pcap:{}: Validation error value is not replaced, line = '{}', "
+                        "data = '{}', value = '{}'".format(
+                            self.file, line_number, data_name, value))
+
 
 # noinspection PyClassicStyleClass
 class SiranoPcapWriter(PcapWriter):

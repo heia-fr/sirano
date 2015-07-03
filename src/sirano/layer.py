@@ -4,6 +4,7 @@
 
 from scapy.layers.all import *
 from sirano.plugins.layers.sip import *
+from sirano.plugins.layers.rtp_payload import *
 from sirano.manager import Manager
 
 
@@ -61,15 +62,15 @@ class LayerManager(Manager):
                     bind_layers(lower, upper, fields)
 
                 else:
-                    self.app.log.error("Filetype \"" + self.app.config_file + "\", in 'bind_layers'")
+                    self.app.log.error("Filetype \"" +self.app.project.config + "\", in 'bind_layers'")
 
             else:
                 if "lower" not in elt:
-                    self.app.log.error("Key 'lower' is missing: Filetype \"" + self.app.config_file
+                    self.app.log.error("Key 'lower' is missing: Filetype \"" + self.app.project.config
                                        + "\", in 'bind_layers")
 
                 if "upper" not in elt:
-                    self.app.log.error("Key 'upper' is missing: Filetype \"" + self.app.config_file
+                    self.app.log.error("Key 'upper' is missing: Filetype \"" + self.app.project.config
                                        + "\", in 'bind_layers")
 
 

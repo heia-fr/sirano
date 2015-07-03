@@ -28,6 +28,8 @@ from math import ceil
 
 from netaddr import IPNetwork, IPAddress
 from sirano.data import Data
+from sirano.exception import ValueNotFoundException
+
 
 class IPData(Data):
     """IP Data plugin"""
@@ -116,8 +118,7 @@ class IPData(Data):
         r = self.hosts.get(value, None)
 
         if r is None:
-            self.app.log.error("data:ip: Replacement value not found for '%s'", value)
-            return ''
+            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(self.name, value))
 
         return r
 

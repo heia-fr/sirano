@@ -20,4 +20,22 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
-"""Test package for data plugins"""
+from sirano.action import Action
+from sirano.exception import ImplicitDropException
+
+
+class ImplicitDropAction(Action):
+    """
+    Action plugin to drop the entire packet
+    """
+
+    name = "implicit-drop"
+
+    def discover(self, value):
+        pass
+
+    def anonymize(self, value):
+        raise ImplicitDropException("value = '{}'".format(value))
+
+    def __init__(self, app):
+        super(ImplicitDropAction, self).__init__(app)
