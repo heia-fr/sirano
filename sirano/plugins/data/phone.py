@@ -33,10 +33,10 @@ class PhoneData(Data):
 
     name = 'phone'
 
-    re_phone = re.compile(r"^([#\*\+0-9]+)$")
+    re_phone = re.compile(r"^([#\*\+\d]+)$")
     """Regex with authorized char for a phone number"""
 
-    re_phone_find_format = r"(?:^|[^a-z0-9\.\-]){}(?:[^a-z0-9\.\-]|$)"
+    re_phone_find_format = r"(?:^|[^a-z\d\.\-]){}(?:[^a-z\\.\-]|$)"
     """String of regular expression to find phone number in string"""
 
     def __init__(self, app):
@@ -105,7 +105,7 @@ class PhoneData(Data):
         if not isinstance(value, str):
             return False
         if self.re_phone.match(value) is None:
-            self.app.log.debug("sirano:data:phone: Regex not match for value = '{}'".format(value))
+            self.app.log.debug("sirano:data:phone: Regex not match for value = {}".format(repr(value)))
             return False
 
         for a_format in self.formats:
@@ -118,6 +118,7 @@ class PhoneData(Data):
         return len(self.numbers)
 
     def has_replacement(self, replacement):
+        self.app.log.debug("data:phone:has_replacement('{}')".format(replacement))
         for a_format in self.formats:
             match = a_format.match(replacement)
             if match is not None:
@@ -256,7 +257,7 @@ class PhoneData(Data):
                         else:
                             rand_code = self.__rand_str_number(len(code.replace('X', '')))
                         rand_code += 'X' * (len(code) - len(code.replace('X', '')))
-                        if rand_code not in self.codes.values():
+                        if not rand_code.startswith('0') and rand_code not in self.codes.values():
                             self.codes[code] = rand_code
                             break
                         i +=1

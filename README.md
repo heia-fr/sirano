@@ -2,8 +2,6 @@
 
 Network trace and log file anonymizer.
 
-This version is for testing purposes.
-
 ## Features
 
 ### Supported file types
@@ -14,11 +12,14 @@ This version is for testing purposes.
 ### Supported protocols
 
 * ARP
-* DNS <sup>[new]</sup>
-* Ethernet
-* ICMP <sup>[new]</sup>
+* Cooked Linux
+* DNS
+* Ethernet (802.3)
+* Ethernet II
+* ICMP
 * IP
-* RTP <sup>[new]</sup>
+* LLC
+* RTP
 * SDP
 * SIP
 * TCP

@@ -12,6 +12,7 @@ import errno
 import time
 from shutil import copytree
 import shutil
+import sys
 import yaml
 
 from sirano.action import ActionManager
@@ -24,7 +25,8 @@ from datadiff import diff
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
-sirano_loggers = dict()
+global sirano_logger
+sirano_logger = None
 
 class Phase(Enum):
     phase_1 = 1
@@ -242,6 +244,7 @@ class App(object):
                     zip_file.write(filename, arcname)
 
         self.project.clean()
+        self.app.info("Project '{}' archived".format(self.project_name))
 
     def __load_report(self):
         """
@@ -260,24 +263,22 @@ class App(object):
         Load the log handler
         """
 
-        log = sirano_loggers.get('sirano')
-
-        if log:
-            self.log = log
-        else:
-            log = logging.getLogger("sirano")
-            sirano_loggers['sirano'] = log
-
-        log.setLevel(logging.DEBUG)
+        global sirano_logger
+        log = sirano_logger
 
         fmt = logging.Formatter('%(asctime)s:%(levelname)8s:%(name)s:%(message)s')
 
+        if log is not None:
+            self.log = log
+        else:
+            log = logging.getLogger("sirano")
+            sirano_logger = log
 
-
-        # Console handler
-        handler_console = logging.StreamHandler()
-        handler_console.setLevel(logging.INFO)
-        handler_console.setFormatter(fmt)
+            # Console handler
+            handler_console = logging.StreamHandler()
+            handler_console.setLevel(logging.INFO)
+            handler_console.setFormatter(fmt)
+            log.addHandler(handler_console)
 
         if self.phase == 1:
             phase = 'discovery'
@@ -289,6 +290,7 @@ class App(object):
             phase = 'validation'
         else:
             phase = 'others'
+
         # All file handler
         path = self.project.logs + '/' + phase + '/'
         makedirs(path)
@@ -308,16 +310,19 @@ class App(object):
         handler_debug.setFormatter(fmt)
 
         for hdlr in log.handlers:  # remove all old handlers
+            if hdlr.stream == sys.stderr:
+                break
+            hdlr.flush()
+            hdlr.close()
             log.removeHandler(hdlr)
-        log.addHandler(handler_console)
+
+
         log.addHandler(handler_critical)
         log.addHandler(handler_error)
         log.addHandler(handler_info)
         log.addHandler(handler_debug)
 
-
-        log.info("app: Sirano logs in console")
-
+        log.setLevel(logging.DEBUG)
         self.log = log
 
     def report_update_phase(self, name, values):
@@ -343,7 +348,7 @@ class App(object):
         """
         Load the YAML configuration
         """
-        self.log.info("app: Load config: Filetype \"%s\"", self.project.config)
+        self.log.debug("app: Load config: Filetype \"%s\"", self.project.config)
         current = yaml.load(open(self.project.config))
         default = yaml.load(open(self.default.config))
         self.__create_conf_diff(current, default)

@@ -18,38 +18,38 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-import struct
-import netaddr
-from scapy.fields import MACField
-from scapy.utils import str2mac, mac2str
+import re
 
 from sirano.action import Action
+from sirano.exception import UnsupportedFormatException, ImplicitDropException
 
 
-class MacAddressAction(Action):
-    """Action plugin for a mac address"""
+class PhoneNumberAction(Action):
+    """Action plugin for a phone number"""
 
-    name = "mac-address"
+    name = "phone-number"
 
     def __init__(self, app):
-        super(MacAddressAction, self).__init__(app)
+        super(PhoneNumberAction, self).__init__(app)
 
-        self.mac = self.app.manager.data.get_data('mac')
-        """:type : MacData"""
+        self.phone = self.app.manager.data.get_data('phone')
+        """
+        The phone number data manager
+        :type: sirano.plugins.data.phone.PhoneData
+        """
 
     def discover(self, value):
-        if '\x00' in value:
-            value = str(str2mac(value[0:6]))
-
-        self.mac.add_value(value)
+        value = value.split(' ')
+        for v in value:
+            if self.phone.is_valid(v):
+                self.phone.add_value(v)
 
     def anonymize(self, value):
-        binary = False
-        if '\x00' in value:
-            value = str(str2mac(value[0:6]))
-            binary = True
-        replacement = self.mac.get_replacement(value)
-        if binary:
-            if replacement != '':
-                replacement = mac2str(replacement)
+        replacement = value
+        value = value.split(' ')
+        for v in value:
+            if self.phone.is_valid(v):
+                replacement = replacement.replace(v, self.phone.get_replacement(v))
         return replacement
+
+

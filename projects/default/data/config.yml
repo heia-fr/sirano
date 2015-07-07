@@ -1,6 +1,14 @@
 layer:
   bind-layers:
     - lower: UDP
+      upper: Raw
+      fields:
+        dport: 1900
+    - lower: UDP
+      upper: Raw
+      fields:
+        sport: 1900
+    - lower: UDP
       upper: RTP
     - lower: RTP
       upper: RawPayload
@@ -23,7 +31,7 @@ packet:
         m: pass
         s: pass
         t: pass
-        p: pass
+        p: phone-number
         c: sdp-connection
         o: sdp-origin
         e: email
@@ -80,6 +88,7 @@ packet:
         Send-Info: pass
         Warning: pass
         RTP-RxStat: pass
+        MIME-Version: pass
 
     SIPResponse: pass
 
@@ -147,7 +156,10 @@ packet:
       other-fields: pass
 
     Dot1Q: pass
-    CookedLinux: pass
+    CookedLinux:
+      fields:
+        src: mac-address
+      other-fields: pass
 
     ARP:
       fields:
@@ -209,6 +221,7 @@ packet:
     NBTDatagram: drop
     NTP: drop
     SNMP: drop
+    LLMNRQuery: drop
 
 data:
   ip:
@@ -266,10 +279,9 @@ data:
     digit-preserved: 3
     formats:
         - (\+|000|00)(\d{10,15}) # Complete E.164 numbers
-        - (00|0)(\d{7,10})       # Regionnal numbers
+        - (00|0)(\d{7,11})       # Regionnal numbers
         - ()(\d{10,15})          # Other numbers
     exclusion:
-      - 41797133116
 
   mac:
     exclusion:
@@ -284,8 +296,11 @@ data:
       - 'Session ID: (\d+)'
       - 'Session Version: (\d+)'
       - 'Owner/Creator, Session Id \(o\): .+ (\d+ \d+) IN IP4'
-      - 'User-Agent: Nortel SESM (\d{1,2}(?:\.\d{1,2}){3})'
-      - 'CSeq: (\d{5})'
+      - 'User-Agent: (.*)'
+      - 'Server: (.*)'
+      - 'CSeq: (\d+)'
+      - 'RSeq: (\d+)'
+      - 'Sequence Number: (\d+)'
       - 'Synchronization Source identifier: ([^\s]+\s\(\d+\))'
       - 'Sender SSRC: ([^\s]+\s\(\d+\))'
       - 'Extended highest sequence number received: (\d+)'
@@ -297,5 +312,18 @@ data:
       - 'Sender.s packet count: (\d+)'
       - 'Sender.s octet count: (\d+)'
       - 'RTP timestamp: (\d+)'
-      - 'Call-ID: (\w+)@'
-
+      - 'Call-ID: ([a-z\d-]+)@'
+      - 'Total Length: (\d+)'
+      - '(\d+) seconds'
+      - 'Timestamps: TSval (\d+, TSecr \d+)'
+      - 'Padding: (\d+)'
+      - 'Timestamp value: (\d+)'
+      - 'RAck: ([\s\d]+)'
+      - 'RSeq Sequence Number: (\d+)'
+      - 'X-Siemens-Call-Type: (.*)'
+      - 'Data: (.*)\.\.\.'
+      - '(\.{2,}.\.+|\.+.\.{2,})'
+      - '\.(\.+)'
+      - 'Extended sequence number:(.*)'
+      - 'Arrival Time: (.*)'
+      - 'Epoch Time: (.*)'

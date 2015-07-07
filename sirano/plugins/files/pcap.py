@@ -151,6 +151,7 @@ class PCAPFile(File):
 
         elif self.app.phase is Phase.phase_4:
             path = os.path.join(self.app.project.validation, os.path.splitext(name)[0] + '.clean.txt')
+            self.app.manager.data.set_clean_mode_all(True)
 
             try:
                 os.makedirs(self.app.project.validation)
@@ -176,6 +177,7 @@ class PCAPFile(File):
                 drop_writer.close()
 
             elif self.app.phase is Phase.phase_4:
+                self.app.manager.data.set_clean_mode_all(False)
                 validation_file.close()
 
     def discover(self):

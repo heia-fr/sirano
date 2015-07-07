@@ -16,10 +16,10 @@
     "bower_components"
   ],
   "dependencies": {
-    "startbootstrap-sb-admin-2": "~1.0.7",
-    "angular-smart-table": "~2.1.0",
-    "bootstrap": "~3.3.5",
-    "jquery": "~2.1.4",
-    "angular": "~1.4.1"
+    "startbootstrap-sb-admin-2": "1.0.7",
+    "angular-smart-table": "2.1.0",
+    "bootstrap": "3.3.5",
+    "jquery": "2.1.4",
+    "angular": "1.4.1"
   }
 }

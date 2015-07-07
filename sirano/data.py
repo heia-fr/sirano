@@ -118,6 +118,15 @@ class DataManager(Manager):
             values[name] = data.find_values(string)
         return  values
 
+    def set_clean_mode_all(self, mode):
+        """
+        Set the clean mode for all data
+        :param mode: True if the clean mode is activated, False otherwise
+        :type mode: True | False
+        """
+        for name, data in self.data.items():
+            data.clean_mode = mode
+
     def guess_data(self, value):
         """
         Guess which Data class to use for the specified value
@@ -286,7 +295,7 @@ class Data(AppBase):
         exclusions = self.app.conf.get('data', dict()).get('global', dict()).get('find-exclusion', list())
         if exclusions:
             for exclusion in exclusions:
-                self.__exclusion.append(re.compile(exclusion))
+                self.__exclusion.append(re.compile(exclusion, re.IGNORECASE))
 
         self.post_load()
 

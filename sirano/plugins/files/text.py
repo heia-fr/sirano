@@ -105,11 +105,11 @@ class TextFile(File):
         self.__replace(os.path.join(self.app.project.output, self.file))
 
     def validate(self):
+        self.app.manager.data.set_clean_mode_all(True)
         root, ext = os.path.splitext(self.file)
         filename = root + '.clean' + ext
-        self.app.manager.data.clean_mode = True
-        self.__replace(os.path.join(self.app.project.output, filename))
-        self.app.manager.data.clean_mode = False
+        self.__replace(os.path.join(self.app.project.validation, filename))
+        self.app.manager.data.set_clean_mode_all(False)
 
     @classmethod
     def is_compatible(cls, path):

@@ -3,10 +3,10 @@
 # Copyright 2015 Loic Gremaud <loic.gremaud@grelinfo.ch>
 
 from scapy.layers.all import *
+from scapy.layers.http import HTTP
 from sirano.plugins.layers.sip import *
 from sirano.plugins.layers.rtp_payload import *
 from sirano.manager import Manager
-
 
 class LayerManager(Manager):
     """Manage Scapy Layer classes"""

@@ -31,13 +31,13 @@ class SIPIdentityAction(Action):
     name = 'sip-identity'
 
     re_sip_identity = re.compile(
-        r'^"?(?P<display>.+?)??"?\s*<?sips?:(?:(?P<user>.+)@)?(?P<host>[^;\?]+?)(?::\d{1,6})?>?\s*(?:;tag=[^;\?]*|'
-        r';epid=[^;\?]*|;expires=\d{1,6}|;transport=(?:tcp||udp)|;maddr=(?P<maddr>[\d\.]+)|'
-        r';user=phone|;\+av-dse-enh=missed|;[^;\?]*instance="[^;\?]*"|;[^;\?]*model[^;\?=]*="[^;\?=]*"|'
-        r';[^;\?=]*devicename[^;\?=]*="(?P<devicename>[^;\?]*)"|;video|;audio|;ms-opaque=[^;\?]*|>)*$',
+        r'^"?(?P<display>.+?)??"?\s*<?sips?:(?:(?P<user>.+)@)?(?P<host>[^;\?]+?)(?::\d{1,6})?>?\s*(?:;(?:'
+        r'tag|epid|expires|transport|user|\+av-dse-enh|[^;\?]*instance|[^;\?]*model|[^;\?=]*devicename|video|audio|'
+        r'ms-opaque|privacy|screen|reason|counter'
+        r')[^;\?]*|;maddr=(?P<maddr>[\d\.]+)|;[^;\?=]*="(?P<devicename>[^;\?]*)"|>)*$',
         re.IGNORECASE)
     """
-    Regex for SIP URI
+    Regex for SIP URI;reason=unconditional;privacy=off;screen=yes
     """
 
     def __init__(self, app):
