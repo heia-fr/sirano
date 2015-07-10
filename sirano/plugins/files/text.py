@@ -30,16 +30,13 @@ from scapy.layers.inet import IP
 from sirano.file import File
 
 
-
 class TextFile(File):
-
     name = 'text'
 
     re_hexdump = re.compile(r"([a-f0-9]+:?\s{1,2}[a-f0-9]{2}(?:\s{1,2}[a-f0-9\s]{2}){15}\s+.{16})", re.IGNORECASE)
     """
     The regular expression to find hexdump line
     """
-
 
     def __init__(self, app, a_file):
         super(TextFile, self).__init__(app, a_file)
@@ -66,9 +63,8 @@ class TextFile(File):
                         counter[word] += 1
                         global_counter[word] += 1
 
-        # print global_counter.most_common(100)
-        # print len(global_counter)
-
+                        # print global_counter.most_common(100)
+                        # print len(global_counter)
 
     def discover(self):
 
@@ -99,7 +95,6 @@ class TextFile(File):
                     else:
                         new_line = action.anonymize(line)
                         f_out.write(new_line)
-
 
     def anonymize(self):
         self.__replace(os.path.join(self.app.project.output, self.file))
@@ -157,9 +152,9 @@ class TextFile(File):
         """
         with open(path) as a_file:
             for line in a_file:
-                line = line.replace('\r', '') # Compatibility with windows file
+                line = line.replace('\r', '')  # Compatibility with windows file
                 match = self.re_hexdump.match(line)
-                if match: # is not None
+                if match:  # is not None
                     return True
 
         return False
@@ -179,4 +174,3 @@ class TextFile(File):
             return IP(raw)
         else:
             return None
-

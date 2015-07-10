@@ -9,11 +9,13 @@ class SiranoException(Exception):
     """
     pass
 
+
 class DropException(SiranoException):
     """
     Exception when the entire element must be dropped
     """
     pass
+
 
 class ImplicitDropException(DropException):
     """
@@ -28,11 +30,13 @@ class ExplicitDropException(DropException):
     """
     pass
 
+
 class ErrorDropException(DropException):
     """
     Exception when an other exception cause a DropException
     """
     pass
+
 
 class ActionException(SiranoException):
     """
@@ -54,6 +58,7 @@ class InvalidValueDataException(DataException):
     """
     pass
 
+
 class ValueNotFoundException(DataException):
     """
     Exception when a value is not found in a data plugin
@@ -66,6 +71,7 @@ class UnsupportedFormatException(ActionException):
     Exception when the format of a value is invalid
     """
     pass
+
 
 class PassException(ActionException):
     """

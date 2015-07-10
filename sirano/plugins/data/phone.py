@@ -127,7 +127,7 @@ class PhoneData(Data):
         return False
 
     def has_value(self, value):
-        return self.numbers.has_key(value)
+        return value in self.numbers
 
     def _add_value(self, value):
         for a_format in self.formats:
@@ -164,7 +164,7 @@ class PhoneData(Data):
         Called by post_load() to load internal representation of formats
         """
         formats = self.conf.get('formats')
-        if isinstance(formats,list):
+        if isinstance(formats, list):
             for a_format in formats:
                 self.formats.append(re.compile('^' + a_format + '$'))
 
@@ -228,7 +228,7 @@ class PhoneData(Data):
             if length <= self.digit_preserved:
                 continue
             if (number not in self.exclusion) and (self.__get_lcm_number(number) is None):
-                code = number[:-self.digit_preserved] # Remove the preserved digit
+                code = number[:-self.digit_preserved]  # Remove the preserved digit
                 code += 'X' * self.digit_preserved
                 self.codes[code] = None
 
@@ -253,15 +253,16 @@ class PhoneData(Data):
                     i = 0
                     while True:
                         if has_supercode:
-                            rand_code = supercode.replace('X', '') + self.__rand_str_number(len(code.replace('X', '')) - len(supercode.replace('X', '')))
+                            rand_code = supercode.replace('X', '') + self.__rand_str_number(
+                                len(code.replace('X', '')) - len(supercode.replace('X', '')))
                         else:
                             rand_code = self.__rand_str_number(len(code.replace('X', '')))
                         rand_code += 'X' * (len(code) - len(code.replace('X', '')))
                         if not rand_code.startswith('0') and rand_code not in self.codes.values():
                             self.codes[code] = rand_code
                             break
-                        i +=1
-                        if i > 100000000:
+                        i += 1
+                        if i > 1000000000000:
                             self.app.log.error("Fail to generate code replacement value, code = '{}'".format(code))
                     self.data_report_processed('code', 'processed')
                 except Exception as e:
@@ -287,7 +288,7 @@ class PhoneData(Data):
                     except Exception as e:
                         self.data_report_processed('number', 'error')
                         self.app.log.error("sirano:data:phone: Fail to generate a replacement value, number='{}',"
-                                               "exception='{}', message='{}'".format(number, type(e), e.message))
+                                           "exception='{}', message='{}'".format(number, type(e), e.message))
                         raise
                 self.data_report_processed('number', 'processed')
 
@@ -303,7 +304,7 @@ class PhoneData(Data):
         rand_number = list()
         for _ in range(length):
             rand_number.append(str(randint(0, 9)))
-        shuffle(rand_number) # More random
+        shuffle(rand_number)  # More random
         return ''.join(rand_number)
 
     def __pre_save_codes(self):
@@ -314,7 +315,7 @@ class PhoneData(Data):
             self.data['codes'] = dict()
         for code, replacement in self.codes.items():
             self.data['codes'][code] = replacement
-            self.data_report_value('code',code, replacement)
+            self.data_report_value('code', code, replacement)
 
     def __pre_save_numbers(self):
         """
@@ -324,6 +325,4 @@ class PhoneData(Data):
             self.data['numbers'] = dict()
         for number, replacement in self.numbers.items():
             self.data['numbers'][number] = replacement
-            self.data_report_value('number',number, replacement)
-
-
+            self.data_report_value('number', number, replacement)

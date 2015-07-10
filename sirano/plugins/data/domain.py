@@ -83,9 +83,10 @@ class DomainData(Data):
                         self.__process_domain(domain)
                     except Exception as e:
                         self.data_report_processed('domain', 'error')
-                        self.app.log.error("data:domain: Fail to process domain='{}', exception='{}', message='{}'".format(
-                            domain, type(e), e.message
-                        ))
+                        self.app.log.error(
+                            "data:domain: Fail to process domain='{}', exception='{}', message='{}'".format(
+                                domain, type(e), e.message
+                            ))
                         raise
                 self.data_report_processed('domain', 'processed')
 
@@ -109,17 +110,17 @@ class DomainData(Data):
 
     def pre_save(self):
         for value, replacement in self.domains.items():
-            self.data_report_value('domain' ,value, replacement)
+            self.data_report_value('domain', value, replacement)
 
     def has_value(self, value):
-        return self.domains.has_key(value)
+        return value in self.domains
 
     def has_replacement(self, replacement):
         return replacement in self.domains.values()
 
     def _find_values(self, string):
         founds = self.re_domain_find.findall(string)
-        values =  filter(lambda v: self.is_valid(v), founds)
+        values = filter(lambda v: self.is_valid(v), founds)
         return values
 
     def _add_value(self, value):
@@ -133,7 +134,8 @@ class DomainData(Data):
         r = self.domains.get(value, None)
 
         if r is None:
-            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(self.name, value))
+            raise ValueNotFoundException(
+                "Replacement value not found, data = '{}', value = {}".format(self.name, value))
 
         return r
 
@@ -227,3 +229,4 @@ class DomainData(Data):
         if isinstance(special_char, list):
             for sc in special_char:
                 self.special_char.append(sc)
+

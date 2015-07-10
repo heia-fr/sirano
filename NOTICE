@@ -9,10 +9,25 @@ argparse
 Licensed under the Python Software Foundation License.
 https://docs.python.org/2/license.html
 
+datadiff
+--------
+Licensed under the Apache License, Version 2.0
+http://sourceforge.net/projects/datadiff/
+
+dnspython
+---------
+Licensed under custum Open Source License, see http://www.dnspython.org/LICENSE
+http://www.dnspython.org/
+
 enum
 ----
 Licensed under the Python Software Foundation License.
 https://docs.python.org/2/license.html
+
+hexdump
+------
+Licensed under Public Domain
+https://bitbucket.org/techtonik/hexdump/
 
 netaddr
 -------
@@ -44,4 +59,8 @@ The Python Standard Library
 Licensed under the Python Software Foundation License.
 https://docs.python.org/2/license.html
 
+tld
+---
+Licensed under the GNU General Public License, version 2.
+https://github.com/barseghyanartur/tld
 

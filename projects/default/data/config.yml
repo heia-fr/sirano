@@ -83,7 +83,7 @@ packet:
         Event: pass
         Subscription-State: pass
         Content-Disposition: pass
-        Call-Info: pass
+        Call-Info: auto
         RTP-TxStat: pass
         Send-Info: pass
         Warning: pass

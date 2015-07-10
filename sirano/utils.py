@@ -7,6 +7,7 @@ import datetime
 from sirano.exception import DropException, ErrorDropException, ExplicitDropException
 from vendor.pygpw import pygpw
 
+
 class AppBase(object):
     """
     The base to inherit application instance
@@ -23,6 +24,7 @@ class AppBase(object):
         The application instance
         :type: App
         """
+
 
 def makedirs(path):
     """Make directories without error if their already exist"""
@@ -157,6 +159,7 @@ def raise_drop_exception(exception, information):
         # Raise a ErrorDropException with information about the original exception type and message
         raise ErrorDropException("{}, exception = '{}', message='{}'".format(
             information, type(exception).__name__, exception.message))
+
 
 def read_by_n_lines(f, n):
     """

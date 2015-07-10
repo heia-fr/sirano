@@ -26,7 +26,7 @@ from scapy.layers.dns import DNSRR, DNSgetstr, DNSRRField
 from scapy.packet import ls
 
 from sirano.action import Action
-from sirano.exception import UnsupportedFormatException, ImplicitDropException, ExplicitDropException
+from sirano.exception import ImplicitDropException, ExplicitDropException
 
 
 class DNSRDataAction(Action):
@@ -48,42 +48,39 @@ class DNSRDataAction(Action):
         self.ip = self.app.manager.data.get_data('ip')
         self.domain = self.app.manager.data.get_data('domain')
 
-
     def discover(self, value):
 
         packet = self.app.packet.current_packet
 
-        if not DNSRR in packet:
+        if DNSRR not in packet:
             self.app.log.warning("sirano:data:dns-rdata: No DNSRR layer found")
             raise ImplicitDropException("No DNSRR layer found")
 
         dnsrr = packet[DNSRR]
         a_type = dnsrr.type
 
-        if a_type == 1: # A
+        if a_type == 1:  # A
             self.ip.add_value(value)
             return
-        elif a_type in [5, 12]: # CNAME, PTR
+        elif a_type in [5, 12]:  # CNAME, PTR
             self.domain_name.discover(value)
             return
-
 
         raise ExplicitDropException("Type not supported, type = '{}'".format(a_type))
 
     def anonymize(self, value):
         packet = self.app.packet.current_packet
 
-        if not DNSRR in packet:
+        if DNSRR not in packet:
             self.app.log.warning("sirano:data:dns-rdata: No DNSRR layer found")
             raise ImplicitDropException("No DNSRR layer found")
 
         dnsrr = packet[DNSRR]
         a_type = dnsrr.type
 
-        if a_type == 1: # A
+        if a_type == 1:  # A
             return self.ip.get_replacement(value)
-        elif a_type in [5, 12]: # CNAME, PTR
+        elif a_type in [5, 12]:  # CNAME, PTR
             return self.domain_name.anonymize(value)
 
         raise ExplicitDropException("Type not supported, type = '{}'".format(a_type))
-

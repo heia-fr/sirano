@@ -22,6 +22,7 @@
 import unittest
 from sirano.plugins.data.ip import IPData
 
+
 class IPDataTest(unittest.TestCase):
     """Unit test for ip-IP Data plugin"""
 

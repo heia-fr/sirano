@@ -2,8 +2,6 @@
 #
 # Copyright 2015 Loic Gremaud <loic.gremaud@grelinfo.ch>
 
-from heapq import heappush
-from operator import attrgetter
 import os
 import datetime
 
@@ -45,7 +43,7 @@ class FileManager(Manager):
     file_classes = None
     """
     Contain the File plugin name with its class
-    :type : list[__FiletypeMetaclass]
+    :type : dict[str, __FiletypeMetaclass]
     """
 
     def __init__(self, app):
@@ -101,10 +99,10 @@ class FileManager(Manager):
         f_cls.priority = priority
 
     def __get_file_cls(self, path):
-        """Find a File plugin for a specified file
-
-        :param filename: The path of the file
-        :type filename: str
+        """
+        Find a File plugin for a specified file
+        :param path: The path of the file
+        :type path: str
         """
         for f_cls in self.file_classes.itervalues():
             if f_cls.is_compatible(path):
@@ -133,7 +131,7 @@ class FileManager(Manager):
                     f = f_cls(self.app, r_path)
                     self.files.append(f)
                     self.__report_update_file(name, {'type': f.name,
-                                                     'size' : f.size})
+                                                     'size': f.size})
 
         if len(self.files) == 0:
             self.app.log.info("There are no files to process")
@@ -152,8 +150,8 @@ class FileManager(Manager):
 
         end = datetime.datetime.now()
         self.app.report_update_phase('Anonymize', {'start': date_to_json(start),
-                                                 'end': date_to_json(end),
-                                                 'duration': date_to_json(end - start)})
+                                                   'end': date_to_json(end),
+                                                   'duration': date_to_json(end - start)})
 
     def discover_all(self):
         """Launch the discover method for all files"""
@@ -167,8 +165,8 @@ class FileManager(Manager):
 
         end = datetime.datetime.now()
         self.app.report_update_phase('Discover', {'start': date_to_json(start),
-                                                'end': date_to_json(end),
-                                                'duration': date_to_json(end - start)})
+                                                  'end': date_to_json(end),
+                                                  'duration': date_to_json(end - start)})
 
     def validate_all(self):
         """Launch the validate method for all files"""
@@ -180,11 +178,10 @@ class FileManager(Manager):
             f_end = datetime.datetime.now()
             self.__report_update_file(f.file, {'validate_duration': date_to_json(f_end - f_start)})
 
-
         end = datetime.datetime.now()
         self.app.report_update_phase('Validate', {'start': date_to_json(start),
-                                                'end': date_to_json(end),
-                                                'duration': date_to_json(end - start)})
+                                                  'end': date_to_json(end),
+                                                  'duration': date_to_json(end - start)})
 
     def __report_update_file(self, name, values):
         """
@@ -204,6 +201,7 @@ class FileManager(Manager):
             entry = {'name': name}
             files.append(entry)
         entry.update(values)
+
 
 class File:
     """Superclass for all actions"""
@@ -298,9 +296,10 @@ class File:
         nbytes = statinfo.st_size
 
         suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
-        if nbytes == 0: return '0 B'
+        if nbytes == 0:
+            return '0 B'
         i = 0
-        while nbytes >= 1024 and i < len(suffixes)-1:
+        while nbytes >= 1024 and i < len(suffixes) - 1:
             nbytes /= 1024.
             i += 1
         f = ('%.2f' % nbytes).rstrip('0').rstrip('.')

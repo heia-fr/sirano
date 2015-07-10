@@ -265,7 +265,6 @@ class PacketAnonymizer(AppBase):
         a_global['packets'] = list()
         a_global['layers'] = list()
 
-
     def __get_packet_layers(self, packet):
         """
         Get packet layers to readable format

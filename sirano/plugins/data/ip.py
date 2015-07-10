@@ -89,7 +89,7 @@ class IPData(Data):
         return replacement in self.hosts.values()
 
     def has_value(self, value):
-        return self.hosts.has_key(value)
+        return value in self.hosts
 
     def _add_value(self, ip):
         if ip not in self.hosts:
@@ -118,7 +118,8 @@ class IPData(Data):
         r = self.hosts.get(value, None)
 
         if r is None:
-            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(self.name, value))
+            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(
+                self.name, value))
 
         return r
 
@@ -134,7 +135,7 @@ class IPData(Data):
             try:
                 subnet = IPNetwork(subnet)
 
-                if replacement: # is not None
+                if replacement:  # is not None
                     replacement = IPNetwork(replacement)
 
                 subnets[subnet] = replacement
@@ -149,7 +150,7 @@ class IPData(Data):
         """ Transform subnets property to be serialized """
         subnets = dict()
         for subnet, replacement in self.subnets.items():
-            if replacement: # is not None
+            if replacement:  # is not None
                 replacement.prefixlen = subnet.prefixlen
                 replacement = str(replacement)
             subnet = str(subnet)
@@ -158,7 +159,7 @@ class IPData(Data):
         self.data['subnets'] = subnets
 
     def __process_subnets(self):
-        for subnet, replacement in reversed(self.subnets.items()): # iterate from the shortest prefix to the longest
+        for subnet, replacement in reversed(self.subnets.items()):  # iterate from the shortest prefix to the longest
             self.data_report_processed('subnet', 'number')
             if replacement is None:
                 try:
@@ -174,7 +175,7 @@ class IPData(Data):
     def __process_hosts(self):
         for host, replacement in self.hosts.items():
             self.data_report_processed('host', 'number')
-            if replacement is None or replacement == 'None': # is None
+            if replacement is None or replacement == 'None':  # is None
                 if host in self.exclusion:
                     self.hosts[host] = host
                 else:
@@ -183,8 +184,8 @@ class IPData(Data):
                         self.hosts[host] = str(replacement)
                     except Exception as e:
                         self.data_report_processed('host', 'error')
-                        self.app.log.error("sirano:data:ip: Fail to generate a replacement value, host='{}', host='{}', "
-                                           "exception='{}', message='{}'".format(host, type(e), e.message))
+                        self.app.log.error("sirano:data:ip: Fail to generate a replacement value, host='{}', "
+                                           "host='{}', exception='{}', message='{}'".format(host, type(e), e.message))
                         raise
                 self.data_report_processed('host', 'processed')
 
@@ -297,7 +298,7 @@ class IPData(Data):
 
         subnet = self.__get_lpm_subnet_replacement(host)
 
-        if not subnet: # is None
+        if not subnet:  # is None
             self.app.log.error("Subnet not exist for host {}".format(host))
             raise Exception("Subnet not exist for host {}".format(host))
 
@@ -310,12 +311,12 @@ class IPData(Data):
         elif prefixlen < 16:
             byte_to_anonymize = 1
             self.app.log.warning("The anonymized host is not very secure, the subnet prefix is too short "
-                                "host = '{}', subnet = '{}'".format(host, subnet))
+                                 "host = '{}', subnet = '{}'".format(host, subnet))
         elif prefixlen < 24:
             byte_to_anonymize = 2
         elif prefixlen < 32:
             byte_to_anonymize = 3
-        else: # prefixlen == 32
+        else:  # prefixlen == 32
             byte_to_anonymize = 4
 
         subnet_bytes = str(subnet.network).split('.')
@@ -374,7 +375,7 @@ class IPData(Data):
 
         if self.__is_subnet_exists_in_supernet(subnet):
             self.app.log.warning("The supernet is already anonymized for this subnet, it is anonymized but it lost the "
-                               "consistence with its supernet, subnet = '{}'".format(subnet))
+                                 "consistence with its supernet, subnet = '{}'".format(subnet))
 
         supernet = self.__get_lpm_subnet_replacement(subnet)
         if supernet is not None:
@@ -382,7 +383,7 @@ class IPData(Data):
         else:
             supernet = self.__get_lpm_block(subnet)
 
-        bytes_len = map(len ,str(subnet).split('.'))
+        bytes_len = map(len, str(subnet).split('.'))
         bytes_min = self.__ip_address_to_bytes(IPAddress(supernet.first))
         bytes_max = self.__ip_address_to_bytes(IPAddress(supernet.last))
         bytes_new = self.__ip_address_to_bytes(subnet.network)
@@ -396,12 +397,12 @@ class IPData(Data):
         elif prefixlen < 16:
             byte_to_anonymize = 1
             self.app.log.warning("The anonymized subnet is not very secure, the prefix is too short "
-                                "subnet = '{}', supernet = '{}'".format(subnet, supernet))
+                                 "subnet = '{}', supernet = '{}'".format(subnet, supernet))
         elif prefixlen < 24:
             byte_to_anonymize = 2
         elif prefixlen < 32:
             byte_to_anonymize = 3
-        else: # prefixlen == 32
+        else:  # prefixlen == 32
             byte_to_anonymize = 4
 
         bytes_rand = defaultdict(list)
@@ -409,8 +410,8 @@ class IPData(Data):
         for byte in range(byte_to_anonymize):
             # Transform min and max byte for respecting the number of character
             byte_len = bytes_len[byte]
-            byte_max = min(int('9' * byte_len), bytes_max[byte]) # The last byte that have the same char number
-            byte_min = max(10 * (byte_len - 1), bytes_min[byte]) # The first byte that have the same char number
+            byte_max = min(int('9' * byte_len), bytes_max[byte])  # The last byte that have the same char number
+            byte_min = max(10 * (byte_len - 1), bytes_min[byte])  # The first byte that have the same char number
 
             # Prepare random number list for the byte
             bytes_rand[byte] = range(byte_min, byte_max + 1)
@@ -432,7 +433,7 @@ class IPData(Data):
 
     def __pre_save_hosts(self):
         for value, replacement in self.hosts.items():
-            self.data_report_value('host' ,value, replacement)
+            self.data_report_value('host', value, replacement)
 
     def __post_load_exclusion(self):
         """

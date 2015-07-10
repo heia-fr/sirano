@@ -8,7 +8,6 @@ import os
 import re
 from zipfile import ZipFile
 from enum import Enum
-import errno
 import time
 from shutil import copytree
 import shutil
@@ -28,12 +27,14 @@ logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 global sirano_logger
 sirano_logger = None
 
+
 class Phase(Enum):
     phase_1 = 1
     phase_2 = 2
     phase_3 = 3
     phase_4 = 4
     """Validation phase"""
+
 
 class AppManager(AppBase):
     def __init__(self, app):
@@ -140,10 +141,12 @@ class ProjectPath(AppBase):
         shutil.rmtree(self.validation)
         shutil.rmtree(self.trash)
         shutil.rmtree(self.logs)
-        shutil.copytree(self.app.default.report, self.report) # Retrieve report base files
+        shutil.copytree(self.app.default.report, self.report)  # Retrieve report base files
         self.load()
 
+
 class App(object):
+
     def __init__(self, project_name):
         """
         The application instance
@@ -244,7 +247,7 @@ class App(object):
                     zip_file.write(filename, arcname)
 
         self.project.clean()
-        self.app.info("Project '{}' archived".format(self.project_name))
+        self.app.log.info("Project '{}' archived".format(self.project_name))
 
     def __load_report(self):
         """
@@ -316,7 +319,6 @@ class App(object):
             hdlr.close()
             log.removeHandler(hdlr)
 
-
         log.addHandler(handler_critical)
         log.addHandler(handler_error)
         log.addHandler(handler_info)
@@ -352,7 +354,7 @@ class App(object):
         current = yaml.load(open(self.project.config))
         default = yaml.load(open(self.default.config))
         self.__create_conf_diff(current, default)
-        self.conf =  current
+        self.conf = current
 
     def __create_conf_diff(self, current, default):
         """

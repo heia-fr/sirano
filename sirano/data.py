@@ -9,7 +9,7 @@ import datetime
 
 import yaml
 
-from sirano.exception import DataException, InvalidValueDataException
+from sirano.exception import InvalidValueDataException
 
 from sirano.manager import Manager
 from sirano.utils import date_to_json, AppBase
@@ -97,8 +97,8 @@ class DataManager(Manager):
             d.process()
         end = datetime.datetime.now()
         self.app.report_update_phase('Generate', {'start': date_to_json(start),
-                                     'end': date_to_json(end),
-                                     'duration': date_to_json(end - start)})
+                                                  'end': date_to_json(end),
+                                                  'duration': date_to_json(end - start)})
 
     def save_all(self):
         """Call save method for all Data instance"""
@@ -116,7 +116,7 @@ class DataManager(Manager):
         values = dict()
         for name, data in self.data.items():
             values[name] = data.find_values(string)
-        return  values
+        return values
 
     def set_clean_mode_all(self, mode):
         """
@@ -137,10 +137,7 @@ class DataManager(Manager):
         :return the Data class
         :rtype Data
         """
-
         l = dict()
-
-
         for n, d in self.data.items():
             if d.is_valid(value):
                 l[n] = d
@@ -406,7 +403,7 @@ class Data(AppBase):
         :return: True if exists, False otherwise
         :rtype: True | False
         """
-        raise  NotImplementedError
+        raise NotImplementedError
 
     def has_replacement(self, replacement):
         """
@@ -442,7 +439,7 @@ class Data(AppBase):
         :return: The object reference
         """
         # Set default value if not exist or None
-        if (not self.data.has_key(name)) or (self.data[name] is None):
+        if (name not in self.data) or (self.data[name] is None):
             self.data[name] = default()
         return self.data[name]
 
@@ -464,7 +461,7 @@ class Data(AppBase):
         :return: The list of values
         :rtype: list[str]
         """
-        string = string.replace('\n', ' ').replace('\r', ' ') # Remove new line
+        string = string.replace('\n', ' ').replace('\r', ' ')  # Remove new line
 
         for re_exclusion in self.__exclusion:
             for exclusion in re_exclusion.findall(string):
@@ -528,3 +525,4 @@ class Data(AppBase):
 
             # Values
             self.report['values'] = dict()
+

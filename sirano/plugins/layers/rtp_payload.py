@@ -23,8 +23,8 @@ from scapy.fields import StrField
 from scapy.packet import Packet, bind_layers
 from scapy.layers.rtp import RTP
 
-class RawPayload(Packet):
 
+class RawPayload(Packet):
     name = "Raw Payload"
 
-    fields_desc = [ StrField("content", "") ]
+    fields_desc = [StrField("content", "")]

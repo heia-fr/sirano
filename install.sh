@@ -45,7 +45,10 @@ npm install -g bower
 pip install -r requirements.txt
 
 # Install report dependency
+
 ( cd projects/default/report/resources && bower install --config.interactive=false --allow-root)
+
+chmod 777 -R projects/default/report/resources/
 
 # Set execution permission for user and group
 chmod a+x sirano.py

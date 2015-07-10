@@ -31,11 +31,11 @@ class SDPOriginAction(Action):
     name = "sdp-origin"
 
     re_sdp_origin = re.compile(r"^(?P<username>.+)\s"
-                                   r"(?P<session_id>.+)\s"
-                                   r"(?P<version>.+)\s"
-                                   r"(?P<network_type>IN)\s"
-                                   r"(?P<address_type>IP4)\s"
-                                   r"(?P<address>.+)$")
+                               r"(?P<session_id>.+)\s"
+                               r"(?P<version>.+)\s"
+                               r"(?P<network_type>IN)\s"
+                               r"(?P<address_type>IP4)\s"
+                               r"(?P<address>.+)$")
     """
     The regular expression for the field O
 
@@ -69,7 +69,6 @@ class SDPOriginAction(Action):
 
         ip = m.group('address')
         name = m.group('username')
-
 
         if self.data_name.is_valid(name) and self.data_ip.is_valid(ip):
             return ip, name

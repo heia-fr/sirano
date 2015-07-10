@@ -21,7 +21,6 @@
 
 import unittest
 from sirano.plugins.actions.domain_name import DomainNameAction
-from sirano.plugins.actions.sip_p_charging_vector import SIPPChargingVectorAction
 
 
 class DomainNameActionTest(unittest.TestCase):

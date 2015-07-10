@@ -134,10 +134,10 @@ class DomainNameAction(Action):
 
         number = match.group('number')
 
-        number = number.replace('.', '') # Remove dot
-        number = number[::-1] # Reverse order
+        number = number.replace('.', '')  # Remove dot
+        number = number[::-1]  # Reverse order
 
-        return  number
+        return number
 
     def __discover_ip_address(self, value):
         """
@@ -181,7 +181,7 @@ class DomainNameAction(Action):
         :rtype: True | False
         """
         if value.endswith('.'):
-            value = value[:-1] # remove the last dot
+            value = value[:-1]  # remove the last dot
         if self.domain.is_valid(value):
             self.domain.add_value(value, False)
             return True
@@ -196,7 +196,7 @@ class DomainNameAction(Action):
         :rtype: True | False
         """
         if value.endswith('.'):
-            value = value[:-1] # remove the last dot
+            value = value[:-1]  # remove the last dot
         if self.app.manager.data.get_data('name').is_valid(value):
             self.app.manager.data.get_data('name').add_value(value, False)
             return True
@@ -245,8 +245,8 @@ class DomainNameAction(Action):
         number = self.phone.get_replacement(number)
 
         # E.164 to ENUM format
-        number = number[::-1] # Reverse order
-        number = list(number) # Split char to list
+        number = number[::-1]  # Reverse order
+        number = list(number)  # Split char to list
         number = '.'.join(number)
 
         replacement = "{}.e164.arpa".format(number)
@@ -254,7 +254,7 @@ class DomainNameAction(Action):
         if value.endswith('.'):
             replacement += '.'
 
-        return  replacement
+        return replacement
 
     def __anonymize_domain(self, value):
         """
@@ -265,7 +265,7 @@ class DomainNameAction(Action):
         :type: str | None
         """
         if value.endswith('.'):
-            value = value[:-1] # remove the last dot
+            value = value[:-1]  # remove the last dot
         if self.domain.is_valid(value):
             return self.domain.get_replacement(value)
         return None
@@ -279,9 +279,7 @@ class DomainNameAction(Action):
         :type: str | None
         """
         if value.endswith('.'):
-            value = value[:-1] # remove the last dot
+            value = value[:-1]  # remove the last dot
         if self.app.manager.data.get_data('name').is_valid(value):
             return self.app.manager.data.get_data('name').get_replacement(value)
         return None
-
-

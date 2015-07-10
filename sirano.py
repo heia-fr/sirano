@@ -24,7 +24,6 @@
 
 import argparse
 import os
-import unittest
 
 from sirano.app import App, Phase
 

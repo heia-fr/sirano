@@ -8,6 +8,7 @@ from sirano.plugins.layers.sip import *
 from sirano.plugins.layers.rtp_payload import *
 from sirano.manager import Manager
 
+
 class LayerManager(Manager):
     """Manage Scapy Layer classes"""
 
@@ -62,7 +63,7 @@ class LayerManager(Manager):
                     bind_layers(lower, upper, fields)
 
                 else:
-                    self.app.log.error("Filetype \"" +self.app.project.config + "\", in 'bind_layers'")
+                    self.app.log.error("Filetype \"" + self.app.project.config + "\", in 'bind_layers'")
 
             else:
                 if "lower" not in elt:
@@ -72,6 +73,3 @@ class LayerManager(Manager):
                 if "upper" not in elt:
                     self.app.log.error("Key 'upper' is missing: Filetype \"" + self.app.project.config
                                        + "\", in 'bind_layers")
-
-
-

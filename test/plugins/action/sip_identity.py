@@ -21,7 +21,6 @@
 
 import unittest
 from sirano.plugins.actions.sip_identity import SIPIdentityAction
-from sirano.plugins.actions.sip_p_charging_vector import SIPPChargingVectorAction
 
 
 class SIPIdentityActionTest(unittest.TestCase):

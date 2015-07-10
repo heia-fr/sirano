@@ -36,7 +36,8 @@ class MacData(Data):
     re_mac_find = re.compile(r"((?:[0-9a-fA-F]{2}[:\.-]?){5}[0-9a-fA-F]{2})", re.IGNORECASE)
     """Simple regegular expression to find MAC addresses"""
 
-    re_mac = re.compile(r"^((?:(?:(?:[0-9A-F]{2}[:-]){5}[0-9A-F]{2})|(?:(?:[0-9A-F]{4}\.){2}[0-9A-F]{4})))$", re.IGNORECASE)
+    re_mac = re.compile(r"^((?:(?:(?:[0-9A-F]{2}[:-]){5}[0-9A-F]{2})|(?:(?:[0-9A-F]{4}\.){2}[0-9A-F]{4})))$",
+                        re.IGNORECASE)
     """
     The regular expression for a MAC addresses
 
@@ -67,7 +68,7 @@ class MacData(Data):
 
     def pre_save(self):
         for value, replacement in self.macs.items():
-            self.data_report_value('mac' ,value, replacement)
+            self.data_report_value('mac', value, replacement)
 
     @staticmethod
     def __oui(eui):
@@ -109,7 +110,8 @@ class MacData(Data):
     def _get_replacement(self, value):
         r = self.macs.get(value, None)
         if r is None:
-            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(self.name, value))
+            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(
+                self.name, value))
         return r
 
     def is_valid(self, value):
@@ -117,7 +119,7 @@ class MacData(Data):
         if not isinstance(value, str):
             return False
 
-        valid =  self.re_mac.match(value) is not None
+        valid = self.re_mac.match(value) is not None
         return valid
 
     def get_number_of_values(self):
@@ -127,7 +129,7 @@ class MacData(Data):
         return replacement in self.macs.values()
 
     def has_value(self, value):
-        return self.macs.has_key(value)
+        return value in self.macs
 
     def __getattribute__(self, name):
         return super(MacData, self).__getattribute__(name)
@@ -188,11 +190,3 @@ class MacData(Data):
             :return: True if valid, False if invalid
             """
             return cls.re_mac_address.match(string) is not None
-
-
-
-
-
-
-
-

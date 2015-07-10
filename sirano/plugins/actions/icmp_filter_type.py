@@ -38,10 +38,10 @@ class ICMPFilterTypeAction(Action):
 
     name = "icmp-filter-type"
 
-    types =  { 0 : "echo-reply",
-               3 : "dest-unreach",
-               8 : "echo-request",
-               11 : "time-exceeded"}
+    types = {0: "echo-reply",
+             3: "dest-unreach",
+             8: "echo-request",
+             11: "time-exceeded"}
     """Types to accept"""
 
     def discover(self, value):

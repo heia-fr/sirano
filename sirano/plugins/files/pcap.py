@@ -119,7 +119,7 @@ class PCAPFile(File):
             except Exception as e:
                 self.app.log.critical(
                     "sirano:file:pcap:{}: Unexpected error: id = '{}', exception = '{}', message = '{}', {}".format(
-                    self.file, packet_id, type(e), e.message, repr(packet.summary())))
+                        self.file, packet_id, type(e), e.message, repr(packet.summary())))
 
     def __process_file(self, name):
 
@@ -209,7 +209,7 @@ class PCAPFile(File):
         values = defaultdict(list)
         with open(self.validation_file_tshark) as a_file:
             for line_number, line in enumerate(a_file):
-                if line_number and line_number%10000==0:
+                if line_number and line_number % 10000 == 0:
                     self.app.log.info("Validation in progress, line = '{}', file = '{}'".format(line_number, self.file))
                 values_line = self.app.manager.data.find_values_all(line)
                 for data, value in values_line.items():

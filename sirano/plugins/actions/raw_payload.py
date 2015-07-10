@@ -36,7 +36,7 @@ class RTPPayloadAction(Action):
         text_len = len(text)
         s = ''
         for i in range(value_len):
-            s += text[i%text_len]
+            s += text[i % text_len]
         return s
 
     def discover(self, value):

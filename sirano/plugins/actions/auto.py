@@ -64,7 +64,7 @@ class AutoAction(Action):
         data = self.app.manager.data.get_data(data)
         # :type list[str]
         values = data.find_values(string)
-        values.sort(key=len, reverse=True) # Replace the longest value first
+        values.sort(key=len, reverse=True)  # Replace the longest value first
         for value in values:
             replacement = data.get_replacement(value)
             string = string.replace(value, replacement)
@@ -84,4 +84,3 @@ class AutoAction(Action):
         value = self.__anonymize_generic(value, 'phone')
         value = self.__anonymize_generic(value, 'name')
         return value
-

@@ -89,7 +89,8 @@ class NameData(Data):
         value = value.lower()
         r = self.names.get(value, None)
         if r is None:
-            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(self.name, value))
+            raise ValueNotFoundException("Replacement value not found, data = '{}', value = {}".format(
+                self.name, value))
         return r
 
     def has_replacement(self, replacement):
@@ -98,7 +99,7 @@ class NameData(Data):
 
     def has_value(self, value):
         value = value.lower()
-        return self.names.has_key(value)
+        return value in self.names
 
     def is_valid(self, value):
         d = self.app.manager.data
@@ -115,7 +116,7 @@ class NameData(Data):
     def pre_save(self):
         self.data['names'] = self.names
         for value, replacement in self.names.items():
-            self.data_report_value('name',value, replacement)
+            self.data_report_value('name', value, replacement)
         self.names = dict(self.names)
 
     def _find_values(self, a_string):
