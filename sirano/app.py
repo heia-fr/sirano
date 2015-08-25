@@ -247,7 +247,7 @@ class App(object):
                     zip_file.write(filename, arcname)
 
         self.project.clean()
-        self.app.log.info("Project '{}' archived".format(self.project_name))
+        # self.log.info("Project '{}' archived".format(self.project_name))
 
     def __load_report(self):
         """

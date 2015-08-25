@@ -15,6 +15,7 @@
 
 # Ignore Temporary Files
 *.swp
+*~
 
 # Ignore Bower Components
 bower_components
